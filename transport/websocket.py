@@ -5,6 +5,7 @@ import logging
 from aiohttp import web,WSMsgType,ClientSession,ClientTimeout
 
 logger=logging.getLogger(__name__)
+_CHROME_UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
 
 class WSStreamReader:
     def __init__(self, ws):
@@ -141,7 +142,7 @@ def make_server_handler(path, handler, host_header=""):
         return ws
     return ws_handler
 
-async def connect(url, path, sni="", allow_insecure=False, host_header=""):
+async def connect(url, path, sni="", allow_insecure=False, host_header="", extra=None):
     ssl_ctx=None
     if url.startswith("wss://"):
         ssl_ctx=ssl.create_default_context()
@@ -151,9 +152,12 @@ async def connect(url, path, sni="", allow_insecure=False, host_header=""):
         if sni:
             ssl_ctx.check_hostname=not allow_insecure
     full_url=url.rstrip("/")+path
-    headers={"Host":host_header} if host_header else {}
+    ua=(extra or {}).get("user_agent","") or _CHROME_UA
+    ping_iv=(extra or {}).get("ping_interval",20)
+    base_url=url.rstrip("/")
+    headers={"Host":host_header,"User-Agent":ua,"Origin":base_url} if host_header else {"User-Agent":ua,"Origin":base_url}
     session=ClientSession(timeout=ClientTimeout(total=None,connect=30))
-    ws=await session.ws_connect(full_url,ssl=ssl_ctx,max_msg_size=0,compress=False,heartbeat=None,headers=headers)
+    ws=await session.ws_connect(full_url,ssl=ssl_ctx,max_msg_size=0,compress=False,heartbeat=ping_iv,headers=headers)
     reader=WSStreamReader(ws)
     writer=WSStreamWriter(ws,session)
     return reader,writer

@@ -60,7 +60,7 @@ class InboundManager:
         ssl_cert=inb.get("ssl_cert", "")
         ssl_key=inb.get("ssl_key", "")
         host_header=inb.get("host", "")
-        handler=self._make_handler(tag)
+        handler=self._make_handler(tag, inb)
         try:
             if transport in _HTTP_TRANSPORTS:
                 mux_key=(listen_ip, port, ssl_cert, ssl_key)
@@ -106,11 +106,11 @@ class InboundManager:
                 pass
             logger.info(f"inbound [{tag}] stopped")
 
-    def _make_handler(self, tag):
+    def _make_handler(self, tag, inb_cfg=None):
         from inbound.handler import handle_connection
         db=self._db
         router=self._router
         traffic_ctrl=self._traffic_ctrl
         async def handler(reader, writer):
-            await handle_connection(reader, writer, tag, db, router, traffic_ctrl)
+            await handle_connection(reader, writer, tag, db, router, traffic_ctrl, inb_cfg)
         return handler

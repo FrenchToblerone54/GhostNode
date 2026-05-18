@@ -78,13 +78,13 @@ async def _resolve_addr(addr, addr_type):
     except Exception:
         return addr
 
-async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctrl):
-    from core.protocol import decode_header,CMD_TCP,CMD_UDP,CMD_MUX,CMD_CFG,ADDR_DOMAIN
+async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctrl, inb_cfg=None):
+    from core.protocol import decode_header,encode_header,CMD_TCP,CMD_UDP,CMD_MUX,CMD_CFG,ADDR_DOMAIN
     from core.outbound import BlockedError
     try:
         from core.crypto import server_handshake
         try:
-            reader,writer,_=await server_handshake(reader,writer,db)
+            reader,writer,_nanoid=await server_handshake(reader,writer,db)
         except Exception as e:
             logger.debug(f"crypto handshake failed: {e}")
             try:
@@ -92,6 +92,10 @@ async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctr
             except Exception:
                 pass
             return
+        import json as _json
+        _srv_cfg={"ps":(inb_cfg or {}).get("pool_size",8),"pc":(inb_cfg or {}).get("poll_connections",4),"pi":(inb_cfg or {}).get("ping_interval",20),"pt":(inb_cfg or {}).get("ping_timeout",10),"ua":(inb_cfg or {}).get("user_agent","")}
+        writer.write(encode_header(_nanoid,CMD_CFG,ADDR_DOMAIN,_json.dumps(_srv_cfg),0))
+        await writer.drain()
         raw=await reader.read(512)
         if not raw:
             writer.close()

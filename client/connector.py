@@ -2,7 +2,7 @@
 import asyncio
 import logging
 import socket
-from core.protocol import encode_header,CMD_TCP,ADDR_IPV4,ADDR_DOMAIN,ADDR_IPV6
+from core.protocol import encode_header,decode_header,CMD_TCP,CMD_CFG,ADDR_IPV4,ADDR_DOMAIN,ADDR_IPV6
 
 logger=logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ async def open_transport(cfg):
     allow_insecure=cfg.get("allow_insecure",False)
     if transport in ("ws","websocket"):
         from transport.websocket import connect as ws_connect
-        return await ws_connect(url,path,sni,allow_insecure)
+        return await ws_connect(url,path,sni,allow_insecure,extra=cfg)
     elif transport in ("h2","http2"):
         from transport.http2 import connect as h2_connect
         return await h2_connect(url,path,sni,allow_insecure)
@@ -53,6 +53,20 @@ async def connect_to_server(cfg, target_addr, target_port, socks_atyp=0x03):
     reader,writer=await open_transport(cfg)
     from core.crypto import client_handshake
     reader,writer=await client_handshake(reader,writer,nanoid,cfg.get("fp",""))
+    _raw=await reader.read(512)
+    if _raw:
+        _hdr=decode_header(_raw)
+        if _hdr and _hdr["command"]==CMD_CFG:
+            try:
+                import json as _json
+                _srv=_json.loads(_hdr["addr"])
+                if "ps" in _srv: cfg["pool_size"]=int(_srv["ps"])
+                if "pc" in _srv: cfg["poll_connections"]=int(_srv["pc"])
+                if "pi" in _srv: cfg["ping_interval"]=int(_srv["pi"])
+                if "pt" in _srv: cfg["ping_timeout"]=int(_srv["pt"])
+                if "ua" in _srv and _srv["ua"]: cfg["user_agent"]=_srv["ua"]
+            except Exception:
+                pass
     writer.write(header)
     await writer.drain()
     return reader,writer

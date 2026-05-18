@@ -8,6 +8,7 @@ from nanoid import generate as _nanoid
 from aiohttp import ClientSession,ClientTimeout,TCPConnector,web
 
 logger=logging.getLogger(__name__)
+_CHROME_UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
 
 class SSEStreamReader:
     def __init__(self):
@@ -247,7 +248,8 @@ async def connect(url, path, sni="", allow_insecure=False, extra=None, host_head
             ssl_ctx.verify_mode=ssl.CERT_NONE
     base_url=url.rstrip("/")+path
     connector=TCPConnector()
-    _base_headers={"Host":host_header} if host_header else {}
+    ua=(extra or {}).get("user_agent","") or _CHROME_UA
+    _base_headers={"Host":host_header,"User-Agent":ua} if host_header else {"User-Agent":ua}
     session=ClientSession(connector=connector,timeout=ClientTimeout(total=None,connect=10),headers=_base_headers)
     async with session.post(f"{base_url}/gn-init",ssl=ssl_ctx) as resp:
         sid=await resp.text()

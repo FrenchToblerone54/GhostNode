@@ -157,6 +157,11 @@ class Database:
             "ALTER TABLE inbounds ADD COLUMN sni TEXT DEFAULT ''",
             "ALTER TABLE inbounds ADD COLUMN listen_ip TEXT DEFAULT '0.0.0.0'",
             "ALTER TABLE routing_rules ADD COLUMN enabled INTEGER DEFAULT 1",
+            "ALTER TABLE inbounds ADD COLUMN pool_size INTEGER DEFAULT 8",
+            "ALTER TABLE inbounds ADD COLUMN poll_connections INTEGER DEFAULT 4",
+            "ALTER TABLE inbounds ADD COLUMN ping_interval INTEGER DEFAULT 20",
+            "ALTER TABLE inbounds ADD COLUMN ping_timeout INTEGER DEFAULT 10",
+            "ALTER TABLE inbounds ADD COLUMN user_agent TEXT DEFAULT ''",
         ):
             try:
                 await self._db.execute(stmt)
@@ -195,10 +200,10 @@ class Database:
             row=await cur.fetchone()
             return dict(row) if row else None
 
-    async def create_inbound(self, tag, port, transport="websocket", path="/gn", ssl_cert="", ssl_key="", listen_ip="0.0.0.0"):
+    async def create_inbound(self, tag, port, transport="websocket", path="/gn", ssl_cert="", ssl_key="", listen_ip="0.0.0.0", ext_host="", ext_port=0, ext_tls=0, host="", sni="", pool_size=8, poll_connections=4, ping_interval=20, ping_timeout=10, user_agent=""):
         await self._db.execute(
-            "INSERT INTO inbounds(tag,port,transport,path,ssl_cert,ssl_key,listen_ip) VALUES(?,?,?,?,?,?,?)",
-            (tag,port,transport,path,ssl_cert,ssl_key,listen_ip)
+            "INSERT INTO inbounds(tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent)
         )
         await self._db.commit()
         async with self._db.execute("SELECT last_insert_rowid()") as cur:

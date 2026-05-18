@@ -593,6 +593,17 @@ GhostNode
 <div class="fg"><label class="fl">Override Port</label><input class="fi" id="ib-ext-port" type="number" placeholder="443"></div>
 </div>
 <div class="fg-row"><label class="fl">Force TLS in config link</label><button class="toggle-btn off" id="ib-ext-tls" onclick="toggleBtn(this)"></button></div>
+<div class="section-divider"></div>
+<div style="font-size:.74em;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Connection Settings</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Pool Size</label><input class="fi" id="ib-pool-size" type="number" placeholder="8" value="8" min="0"></div>
+<div class="fg"><label class="fl">Poll Connections</label><input class="fi" id="ib-poll-conn" type="number" placeholder="4" value="4" min="1"></div>
+</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Ping Interval (s)</label><input class="fi" id="ib-ping-iv" type="number" placeholder="20" value="20" min="1"></div>
+<div class="fg"><label class="fl">Ping Timeout (s)</label><input class="fi" id="ib-ping-to" type="number" placeholder="10" value="10" min="1"></div>
+</div>
+<div class="fg"><label class="fl">User Agent (empty = Chrome default)</label><input class="fi" id="ib-ua" placeholder="Mozilla/5.0 ..."></div>
 <div class="fg-row"><label class="fl" data-i18n="col_status">Enabled</label><button class="toggle-btn on" id="ib-enabled" onclick="toggleBtn(this)"></button></div>
 </div>
 <div class="modal-ft">
@@ -1064,6 +1075,11 @@ document.getElementById("ib-host").value=i.host||"";
 document.getElementById("ib-ext-host").value=i.ext_host||"";
 document.getElementById("ib-ext-port").value=i.ext_port||"";
 document.getElementById("ib-ext-tls").className="toggle-btn "+(i.ext_tls?"on":"off");
+document.getElementById("ib-pool-size").value=i.pool_size||8;
+document.getElementById("ib-poll-conn").value=i.poll_connections||4;
+document.getElementById("ib-ping-iv").value=i.ping_interval||20;
+document.getElementById("ib-ping-to").value=i.ping_timeout||10;
+document.getElementById("ib-ua").value=i.user_agent||"";
 document.getElementById("ib-enabled").className="toggle-btn "+(i.enabled?"on":"off");
 }}else{
 document.getElementById("ib-tag").value="";
@@ -1078,12 +1094,17 @@ document.getElementById("ib-host").value="";
 document.getElementById("ib-ext-host").value="";
 document.getElementById("ib-ext-port").value="";
 document.getElementById("ib-ext-tls").className="toggle-btn off";
+document.getElementById("ib-pool-size").value=8;
+document.getElementById("ib-poll-conn").value=4;
+document.getElementById("ib-ping-iv").value=20;
+document.getElementById("ib-ping-to").value=10;
+document.getElementById("ib-ua").value="";
 document.getElementById("ib-enabled").className="toggle-btn on";
 }
 openModal("modal-inbound");
 }
 async function saveInbound(){
-const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0"};
+const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0",pool_size:parseInt(document.getElementById("ib-pool-size").value)||8,poll_connections:parseInt(document.getElementById("ib-poll-conn").value)||4,ping_interval:parseInt(document.getElementById("ib-ping-iv").value)||20,ping_timeout:parseInt(document.getElementById("ib-ping-to").value)||10,user_agent:document.getElementById("ib-ua").value.trim()};
 try{
 if(_editInboundId)await api("PUT",`/api/inbounds/${_editInboundId}`,body);
 else await api("POST","/api/inbounds",body);

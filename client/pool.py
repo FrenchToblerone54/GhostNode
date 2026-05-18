@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.13
 import asyncio
 import logging
-from core.protocol import encode_header, CMD_MUX, CMD_TCP, CMD_CFG, ADDR_IPV4, ADDR_DOMAIN
+from core.protocol import encode_header, decode_header, CMD_MUX, CMD_TCP, CMD_CFG, ADDR_IPV4, ADDR_DOMAIN
 
 logger=logging.getLogger(__name__)
 
@@ -89,6 +89,21 @@ class MuxPool:
         reader, writer=await open_transport(self._cfg)
         reader, writer=await client_handshake(reader, writer, nanoid, fp)
         import json as _json
+        _raw=await reader.read(512)
+        if _raw:
+            _hdr=decode_header(_raw)
+            if _hdr and _hdr["command"]==CMD_CFG:
+                try:
+                    _srv=_json.loads(_hdr["addr"])
+                    if "ps" in _srv:
+                        self._cfg["pool_size"]=int(_srv["ps"])
+                        self._size=int(_srv["ps"])
+                    if "pc" in _srv: self._cfg["poll_connections"]=int(_srv["pc"])
+                    if "pi" in _srv: self._cfg["ping_interval"]=int(_srv["pi"])
+                    if "pt" in _srv: self._cfg["ping_timeout"]=int(_srv["pt"])
+                    if "ua" in _srv and _srv["ua"]: self._cfg["user_agent"]=_srv["ua"]
+                except Exception:
+                    pass
         _cfg_str=_json.dumps({"ps":self._size})
         _cfg_hdr=encode_header(nanoid, CMD_CFG, ADDR_DOMAIN, _cfg_str, 0)
         writer.write(_cfg_hdr)
