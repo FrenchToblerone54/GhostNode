@@ -152,7 +152,7 @@ async def connect(url, path, sni="", allow_insecure=False, host_header=""):
             ssl_ctx.check_hostname=not allow_insecure
     full_url=url.rstrip("/")+path
     headers={"Host":host_header} if host_header else {}
-    session=ClientSession(timeout=ClientTimeout(total=30))
+    session=ClientSession(timeout=ClientTimeout(total=None,connect=30))
     ws=await session.ws_connect(full_url,ssl=ssl_ctx,max_msg_size=0,compress=False,heartbeat=None,headers=headers)
     reader=WSStreamReader(ws)
     writer=WSStreamWriter(ws,session)

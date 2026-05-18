@@ -1114,15 +1114,18 @@ tb.innerHTML=list.map(c=>{
 const used=c.upload+c.download;
 const pct=c.traffic_limit>0?Math.min(100,used/c.traffic_limit*100):0;
 const pfill=c.traffic_limit>0?`<div class="prog-fill" style="width:${pct}%;background:${pct>90?"var(--danger)":pct>70?"var(--warning)":"var(--accent)"}"></div>`:"";
-const traffic=c.traffic_limit>0?`<div class="prog-wrap"><div class="prog-bar">${pfill}</div><span class="prog-txt">${fmtBytes(used)}/${fmtBytes(c.traffic_limit)}</span></div>`:`<span class="prog-txt">&#8734; (${fmtBytes(used)})</span>`;
+const _trafficDetail=c.traffic_limit>0?`Used: ${used} bytes (${fmtBytes(used)})\nRemaining: ${c.traffic_limit-used} bytes (${fmtBytes(Math.max(0,c.traffic_limit-used))})\nUpload: ${c.upload} bytes\nDownload: ${c.download} bytes`:`Upload: ${c.upload} bytes\nDownload: ${c.download} bytes\nTotal: ${used} bytes`;
+const traffic=c.traffic_limit>0?`<div class="prog-wrap" style="cursor:pointer" title="${esc(_trafficDetail)}" onclick="showTrafficDetail(${c.id})"><div class="prog-bar">${pfill}</div><span class="prog-txt">${fmtBytes(used)}/${fmtBytes(c.traffic_limit)}</span></div>`:`<span class="prog-txt" style="cursor:pointer" title="${esc(_trafficDetail)}" onclick="showTrafficDetail(${c.id})">&#8734; (${fmtBytes(used)})</span>`;
 const now=new Date();
 let expireHtml="<span style=\"color:var(--text2)\">Never</span>";
 if(c.expire_date){
 const exp=new Date(c.expire_date);
 const diff=exp-now;
-if(diff<0)expireHtml=`<span style="color:var(--danger)">${fmtDate(c.expire_date)} (exp)</span>`;
-else if(diff<7*86400000)expireHtml=`<span style="color:var(--warning)">${fmtDate(c.expire_date)}</span>`;
-else expireHtml=`<span>${fmtDate(c.expire_date)}</span>`;
+const _daysLeft=Math.ceil(diff/86400000);
+const _expDetail=diff<0?`Expired: ${c.expire_date}`:`Expires: ${c.expire_date}\nDays remaining: ${_daysLeft}`;
+if(diff<0)expireHtml=`<span style="color:var(--danger);cursor:pointer" title="${esc(_expDetail)}" onclick="showExpireDetail(${c.id})">${fmtDate(c.expire_date)} (exp)</span>`;
+else if(diff<7*86400000)expireHtml=`<span style="color:var(--warning);cursor:pointer" title="${esc(_expDetail)}" onclick="showExpireDetail(${c.id})">${fmtDate(c.expire_date)}</span>`;
+else expireHtml=`<span style="cursor:pointer" title="${esc(_expDetail)}" onclick="showExpireDetail(${c.id})">${fmtDate(c.expire_date)}</span>`;
 }
 return `<tr>
 <td><div class="cb-wrap"><input type="checkbox" onchange="toggleSelClient(${c.id},this)" ${_selClients.has(c.id)?"checked":""}></div></td>
@@ -1142,6 +1145,22 @@ return `<tr>
 updateBulkBarClients();
 }
 
+function showTrafficDetail(id){
+const c=_clients.find(x=>x.id===id);
+if(!c)return;
+const used=c.upload+c.download;
+const msg=c.traffic_limit>0?`Used: ${used} bytes (${fmtBytes(used)})\nRemaining: ${c.traffic_limit-used} bytes (${fmtBytes(Math.max(0,c.traffic_limit-used))})\nUpload: ${c.upload} bytes (${fmtBytes(c.upload)})\nDownload: ${c.download} bytes (${fmtBytes(c.download)})`:
+`Upload: ${c.upload} bytes (${fmtBytes(c.upload)})\nDownload: ${c.download} bytes (${fmtBytes(c.download)})\nTotal: ${used} bytes (${fmtBytes(used)})`;
+alert(msg);
+}
+function showExpireDetail(id){
+const c=_clients.find(x=>x.id===id);
+if(!c||!c.expire_date)return;
+const exp=new Date(c.expire_date);
+const diff=exp-new Date();
+const daysLeft=Math.ceil(diff/86400000);
+alert(diff<0?`Expired: ${c.expire_date}\n${Math.abs(daysLeft)} days ago`:`Expires: ${c.expire_date}\nDays remaining: ${daysLeft}\nHours remaining: ${Math.floor(diff/3600000)}`);
+}
 function toggleSelClient(id,cb){
 if(cb.checked)_selClients.add(id);else _selClients.delete(id);
 updateBulkBarClients();

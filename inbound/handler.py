@@ -79,7 +79,7 @@ async def _resolve_addr(addr, addr_type):
         return addr
 
 async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctrl):
-    from core.protocol import decode_header,CMD_TCP,CMD_UDP,CMD_MUX,ADDR_DOMAIN
+    from core.protocol import decode_header,CMD_TCP,CMD_UDP,CMD_MUX,CMD_CFG,ADDR_DOMAIN
     from core.outbound import BlockedError
     try:
         from core.crypto import server_handshake
@@ -100,6 +100,20 @@ async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctr
         if not hdr:
             writer.close()
             return
+        while hdr["command"]==CMD_CFG:
+            try:
+                import json as _json
+                _json.loads(hdr["addr"])
+            except Exception:
+                pass
+            raw=await reader.read(512)
+            if not raw:
+                writer.close()
+                return
+            hdr=decode_header(raw)
+            if not hdr:
+                writer.close()
+                return
         nanoid=hdr["nanoid"]
         command=hdr["command"]
         addr=hdr["addr"]
@@ -147,7 +161,7 @@ async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctr
 
 async def _handle_mux(reader, writer, leftover, nanoid, inbound_tag, router, traffic_ctrl, _addr_type):
     from core.mux import MuxSession
-    from core.protocol import decode_header,CMD_TCP,ADDR_DOMAIN
+    from core.protocol import decode_header,CMD_TCP,CMD_CFG,ADDR_DOMAIN
     from core.outbound import BlockedError
 
     class _PrefixReader:
@@ -185,6 +199,20 @@ async def _handle_mux(reader, writer, leftover, nanoid, inbound_tag, router, tra
             if not hdr:
                 await stream.close()
                 return
+            while hdr["command"]==CMD_CFG:
+                try:
+                    import json as _json
+                    _json.loads(hdr["addr"])
+                except Exception:
+                    pass
+                raw=await stream.read(512)
+                if not raw:
+                    await stream.close()
+                    return
+                hdr=decode_header(raw)
+                if not hdr:
+                    await stream.close()
+                    return
             sub_nanoid=hdr["nanoid"]
             allowed=await traffic_ctrl.check_client(sub_nanoid)
             if not allowed:

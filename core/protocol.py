@@ -6,6 +6,7 @@ from nanoid import generate
 CMD_TCP=0x01
 CMD_UDP=0x02
 CMD_MUX=0x03
+CMD_CFG=0x04
 ADDR_IPV4=0x01
 ADDR_DOMAIN=0x02
 ADDR_IPV6=0x03

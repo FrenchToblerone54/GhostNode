@@ -50,6 +50,9 @@ class GhostNodeClient:
             self._server.close()
             await self._server.wait_closed()
             self._server = None
+        from client.pool import get_pool
+        if self._cfg.get("pool_size", 8)>0:
+            get_pool(self._cfg).stop()
 
     async def __aenter__(self):
         return self

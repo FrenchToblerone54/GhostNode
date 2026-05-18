@@ -23,13 +23,13 @@ async def open_transport(cfg):
         return await grpc_connect(url,sni,allow_insecure)
     elif transport in ("hr","http-request"):
         from transport.http_request import connect as hr_connect
-        return await hr_connect(url,path,sni,allow_insecure)
+        return await hr_connect(url,path,sni,allow_insecure,extra=cfg)
     elif transport in ("sse","http-request-sse"):
         from transport.http_request_sse import connect as sse_connect
-        return await sse_connect(url,path,sni,allow_insecure)
+        return await sse_connect(url,path,sni,allow_insecure,extra=cfg)
     elif transport in ("hrb","http-request-body"):
         from transport.http_request_body import connect as hrb_connect
-        return await hrb_connect(url,path,sni,allow_insecure)
+        return await hrb_connect(url,path,sni,allow_insecure,extra=cfg)
     raise ValueError(f"unknown transport: {transport}")
 
 def _addr_type_from_socks(atyp):
@@ -42,8 +42,13 @@ def _addr_type_from_socks(atyp):
     return ADDR_DOMAIN
 
 async def connect_to_server(cfg, target_addr, target_port, socks_atyp=0x03):
-    nanoid=cfg["nanoid"]
     addr_type=_addr_type_from_socks(socks_atyp)
+    if cfg.get("pool_size", 8)>0:
+        from client.pool import get_pool
+        result=await get_pool(cfg).open_stream(target_addr, target_port, addr_type)
+        if result:
+            return result
+    nanoid=cfg["nanoid"]
     header=encode_header(nanoid,CMD_TCP,addr_type,target_addr,target_port)
     reader,writer=await open_transport(cfg)
     from core.crypto import client_handshake

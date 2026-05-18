@@ -84,8 +84,8 @@ class HTTPRequestStreamWriter:
     def close(self):
         self._closed=True
         self._stop.set()
-        if self._task:
-            self._task.cancel()
+        for t in getattr(self,"_tasks",[self._task] if self._task else []):
+            t.cancel()
         asyncio.ensure_future(self._session.close())
 
 class HTTPRequestServerSession:
@@ -248,7 +248,8 @@ async def connect(url, path, sni="", allow_insecure=False, extra=None, host_head
     connector=TCPConnector()
     _base_headers={"Host":host_header} if host_header else {}
     session=ClientSession(connector=connector,timeout=ClientTimeout(total=60),headers=_base_headers)
-    async with session.post(f"{base_url}/gn-init",ssl=ssl_ctx) as resp:
+    _init_headers={"X-Poll-Connections":str((extra or {}).get("poll_connections",1))}
+    async with session.post(f"{base_url}/gn-init",ssl=ssl_ctx,headers=_init_headers) as resp:
         sid=await resp.text()
     stop_event=asyncio.Event()
     stream_reader=HTTPRequestStreamReader()
@@ -265,5 +266,8 @@ async def connect(url, path, sni="", allow_insecure=False, extra=None, host_head
                 logger.debug(f"http-request poll error: {e}")
                 await asyncio.sleep(1)
 
-    stream_writer._task=asyncio.create_task(poll_loop())
+    _pc=(extra or {}).get("poll_connections",1)
+    _tasks=[asyncio.create_task(poll_loop()) for _ in range(_pc)]
+    stream_writer._task=_tasks[0]
+    stream_writer._tasks=_tasks
     return stream_reader,stream_writer
