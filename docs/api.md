@@ -679,3 +679,430 @@ Schedules a process restart via `os.execv`. The response is returned before the 
 ```json
 {"ok": true}
 ```
+
+---
+
+## Updates
+
+### Check for update
+
+`GET /{panel_path}/api/update/check`
+
+Checks GitHub for a newer release using the configured update proxy.
+
+**Response**
+
+```json
+{
+  "update_available": true,
+  "latest": "v0.2.0",
+  "current": "v0.1.0",
+  "repo": "FrenchToblerone54/GhostNode"
+}
+```
+
+---
+
+### Install update
+
+`POST /{panel_path}/api/update/install`
+
+Downloads the latest release binary and restarts the process. The old binary is preserved as `<path>.old`. Runs in a background thread; the server restarts automatically when the download completes.
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+## Xray Core
+
+These endpoints manage the optional embedded Xray core. Xray must be installed before it can be started. All mutating endpoints (create/update/delete) trigger a live Xray restart if Xray is currently running.
+
+### Get Xray status
+
+`GET /{panel_path}/api/xray/status`
+
+**Response**
+
+```json
+{
+  "installed": true,
+  "running": true,
+  "version": "1.8.4",
+  "socks_port": 10808
+}
+```
+
+---
+
+### Install Xray
+
+`POST /{panel_path}/api/xray/install`
+
+Downloads the Xray binary from the official XTLS releases and installs it. Installation runs in a background thread; poll `/api/xray/install-status` to track progress. Falls back to `~/.local/bin/xray` if `/usr/local/bin/xray` is not writable.
+
+**Request body** (all optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `proxy` | string | HTTP proxy URL to use for the download (overrides the `update_proxy` config value) |
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+**Error responses**
+
+| Status | Body |
+|--------|------|
+| `409` | `{"error": "install already in progress"}` |
+
+---
+
+### Get install progress
+
+`GET /{panel_path}/api/xray/install-status`
+
+Returns the current state of a background Xray installation.
+
+**Response**
+
+```json
+{
+  "installing": true,
+  "progress": {
+    "stage": "downloading",
+    "bytes": 4325376,
+    "total": 10485760
+  },
+  "error": null
+}
+```
+
+`stage` is one of `downloading`, `extracting`, `done`, or `error`.
+
+---
+
+### Start / Stop / Restart Xray
+
+`POST /{panel_path}/api/xray/start`
+`POST /{panel_path}/api/xray/stop`
+`POST /{panel_path}/api/xray/restart`
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### List Xray inbounds
+
+`GET /{panel_path}/api/xray/inbounds`
+
+**Response**
+
+```json
+[
+  {
+    "id": 1,
+    "tag": "vless-in",
+    "port": 10009,
+    "protocol": "vless",
+    "settings": "{}",
+    "stream_settings": "{}",
+    "enabled": 1
+  }
+]
+```
+
+---
+
+### Create Xray inbound
+
+`POST /{panel_path}/api/xray/inbounds`
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `tag` | string | yes | Unique tag |
+| `port` | integer | yes | Port to listen on |
+| `protocol` | string | no | One of: `vless`, `vmess`, `trojan`, `shadowsocks`, `socks`, `http`. Default: `vless` |
+| `settings` | object or string | no | Xray inbound settings JSON |
+| `stream_settings` | object or string | no | Xray stream settings JSON |
+
+**Response** `201 Created`
+
+```json
+{"id": 1}
+```
+
+---
+
+### Update Xray inbound
+
+`PUT /{panel_path}/api/xray/inbounds/{id}`
+
+All fields are optional (partial update).
+
+**Request body**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tag` | string | Inbound tag |
+| `port` | integer | Port |
+| `protocol` | string | Protocol |
+| `settings` | object or string | Inbound settings JSON |
+| `stream_settings` | object or string | Stream settings JSON |
+| `enabled` | integer | `1` to enable, `0` to disable |
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### Delete Xray inbound
+
+`DELETE /{panel_path}/api/xray/inbounds/{id}`
+
+Also deletes all clients belonging to this inbound (cascade).
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### List Xray clients
+
+`GET /{panel_path}/api/xray/clients`
+
+**Response**
+
+```json
+[
+  {
+    "id": 1,
+    "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "name": "Alice",
+    "inbound_tag": "vless-in",
+    "traffic_limit": 10737418240,
+    "traffic_up": 0,
+    "traffic_down": 0,
+    "expire_date": "",
+    "enabled": 1
+  }
+]
+```
+
+---
+
+### Create Xray client
+
+`POST /{panel_path}/api/xray/clients`
+
+A UUID v4 is automatically generated.
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | yes | Client label |
+| `inbound_tag` | string | yes | Tag of the Xray inbound |
+| `traffic_limit_gb` | number | no | Traffic limit in GB. `0` means unlimited |
+| `expire_date` | string | no | Expiry date `YYYY-MM-DD`. Empty = no expiry |
+
+**Response** `201 Created`
+
+Full client object (same schema as list response).
+
+---
+
+### Update Xray client
+
+`PUT /{panel_path}/api/xray/clients/{id}`
+
+All fields are optional (partial update).
+
+**Request body**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Client label |
+| `inbound_tag` | string | Xray inbound tag |
+| `traffic_limit_gb` | number | Traffic limit in GB |
+| `expire_date` | string | Expiry date (`YYYY-MM-DD`), empty to remove expiry |
+| `enabled` | integer | `1` / `0` |
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### Delete Xray client
+
+`DELETE /{panel_path}/api/xray/clients/{id}`
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### Toggle Xray client
+
+`POST /{panel_path}/api/xray/clients/{id}/toggle`
+
+Flips the `enabled` flag and restarts Xray.
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### List Xray outbounds
+
+`GET /{panel_path}/api/xray/outbounds`
+
+**Response**
+
+```json
+[
+  {
+    "id": 1,
+    "tag": "my-vmess",
+    "protocol": "vmess",
+    "settings": "{}",
+    "stream_settings": "{}"
+  }
+]
+```
+
+---
+
+### Create Xray outbound
+
+`POST /{panel_path}/api/xray/outbounds`
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `tag` | string | yes | Unique tag |
+| `protocol` | string | no | One of: `vmess`, `vless`, `trojan`, `shadowsocks`, `socks`, `http`, `freedom`, `blackhole`. Default: `vmess` |
+| `settings` | object or string | no | Xray outbound settings JSON |
+| `stream_settings` | object or string | no | Xray stream settings JSON |
+
+**Response** `201 Created`
+
+```json
+{"id": 1}
+```
+
+---
+
+### Update Xray outbound
+
+`PUT /{panel_path}/api/xray/outbounds/{id}`
+
+All fields are optional (partial update).
+
+**Request body**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tag` | string | Outbound tag |
+| `protocol` | string | Protocol |
+| `settings` | object or string | Outbound settings JSON |
+| `stream_settings` | object or string | Stream settings JSON |
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### Delete Xray outbound
+
+`DELETE /{panel_path}/api/xray/outbounds/{id}`
+
+**Response**
+
+```json
+{"ok": true}
+```
+
+---
+
+### Test Xray outbound latency
+
+`POST /{panel_path}/api/xray/outbounds/{id}/test`
+
+Spawns a temporary Xray instance and measures latency to `https://www.google.com/generate_204` through the outbound. Times out after 10 seconds.
+
+**Response**
+
+```json
+{"latency_ms": 142}
+```
+
+`latency_ms` is `null` if the test failed or timed out.
+
+**Error responses**
+
+| Status | Body |
+|--------|------|
+| `400` | `{"error": "xray not installed"}` |
+| `404` | `{"error": "not found"}` |
+
+---
+
+### Get raw Xray config
+
+`GET /{panel_path}/api/xray/raw-config`
+
+Returns the current `xray.json` as a JSON object. If the config file does not exist yet, builds the config in memory from the database without writing it to disk.
+
+**Response**
+
+The full Xray JSON config object.
+
+---
+
+### Save raw Xray config
+
+`POST /{panel_path}/api/xray/raw-config`
+
+Writes a custom Xray JSON config directly to disk, bypassing the database. Restarts Xray if it is currently running. Use this for advanced settings not exposed in the panel.
+
+**Request body**
+
+Any valid Xray JSON config object.
+
+**Response**
+
+```json
+{"ok": true}
+```
