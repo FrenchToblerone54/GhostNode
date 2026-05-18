@@ -3,7 +3,7 @@ import tomllib
 import os
 
 DEFAULT_CONFIG_PATH="/etc/ghostnode/config.toml"
-VERSION="v0.1.0"
+VERSION="v0.1.1"
 
 DEFAULT_TOML="""[panel]
 enabled = true

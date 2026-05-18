@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.13
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -30,6 +31,11 @@ def save_configs(configs):
     with open(CONFIGS_PATH,"w") as f:
         json.dump(configs,f,indent=2)
 
+def _parse_hostport(value, default_host="127.0.0.1", default_port=1080):
+    if ":" in value:
+        host, port_str = value.rsplit(":", 1)
+        return host or default_host, int(port_str)
+    return default_host, int(value)
 
 def cmd_import(args):
     if not args:
@@ -59,14 +65,18 @@ def cmd_run(args):
     config_name=None
     socks_host="127.0.0.1"
     socks_port=1080
+    stdio=False
     i=0
     while i<len(args):
         if args[i]=="--config" and i+1<len(args):
             config_name=args[i+1]
             i+=2
         elif args[i]=="--port" and i+1<len(args):
-            socks_port=int(args[i+1])
+            socks_host, socks_port=_parse_hostport(args[i+1], socks_host, socks_port)
             i+=2
+        elif args[i]=="--stdio":
+            stdio=True
+            i+=1
         else:
             config_name=args[i]
             i+=1
@@ -82,9 +92,92 @@ def cmd_run(args):
     else:
         cfg=next(iter(configs.values()))
     try:
-        asyncio.run(_run_client(cfg,socks_host,socks_port))
+        if stdio:
+            asyncio.run(_run_stdio(cfg))
+        else:
+            asyncio.run(_run_client(cfg, socks_host, socks_port))
     except KeyboardInterrupt:
         pass
+
+async def _run_stdio(cfg):
+    from client.connector import connect_to_server
+    connections={}
+    stdout_lock=asyncio.Lock()
+
+    async def emit(obj):
+        async with stdout_lock:
+            sys.stdout.write(json.dumps(obj)+"\n")
+            sys.stdout.flush()
+
+    async def _read_remote(id, reader):
+        try:
+            while True:
+                data=await reader.read(65536)
+                if not data:
+                    break
+                await emit({"event":"data","id":id,"data":base64.b64encode(data).decode()})
+        except Exception as e:
+            await emit({"event":"error","id":id,"error":str(e)})
+        finally:
+            connections.pop(id, None)
+            await emit({"event":"closed","id":id})
+
+    await emit({"event":"ready","version":VERSION})
+
+    loop=asyncio.get_event_loop()
+    stdin_reader=asyncio.StreamReader()
+    await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(stdin_reader), sys.stdin)
+
+    try:
+        while True:
+            line=await stdin_reader.readline()
+            if not line:
+                break
+            try:
+                cmd=json.loads(line.decode())
+            except Exception:
+                continue
+            c=cmd.get("cmd")
+            id=cmd.get("id")
+            if c=="connect":
+                host=cmd.get("host","")
+                port=cmd.get("port",80)
+                atyp=cmd.get("atyp",0x03)
+                try:
+                    r,w=await connect_to_server(cfg, host, port, atyp)
+                    connections[id]=(r,w)
+                    asyncio.create_task(_read_remote(id, r))
+                    await emit({"event":"connected","id":id})
+                except Exception as e:
+                    await emit({"event":"error","id":id,"error":str(e)})
+            elif c=="write":
+                pair=connections.get(id)
+                if pair:
+                    _,w=pair
+                    try:
+                        w.write(base64.b64decode(cmd.get("data","")))
+                        await w.drain()
+                    except Exception as e:
+                        await emit({"event":"error","id":id,"error":str(e)})
+            elif c=="close":
+                pair=connections.pop(id, None)
+                if pair:
+                    _,w=pair
+                    try:
+                        w.close()
+                    except Exception:
+                        pass
+                    await emit({"event":"closed","id":id})
+            elif c=="ping":
+                await emit({"event":"pong"})
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+    finally:
+        for _,w in connections.values():
+            try:
+                w.close()
+            except Exception:
+                pass
 
 async def _run_client(cfg, socks_host, socks_port):
     from client.connector import connect_to_server
@@ -168,7 +261,7 @@ def main():
         print(f"ghostnode-client {VERSION}")
         return
     if not args or args[0] in ("-h","--help"):
-        print(f"ghostnode-client {VERSION}\n\nCommands:\n  import <gn://link>       import server config from a gn:// link\n  list                     list saved configs\n  remove <name>            remove a saved config\n  run [name] [--port 1080] start SOCKS5 proxy\n  qr [name]                show QR code for a config\n\nOptions:\n  -h, --help               show this help\n  --version                show version")
+        print(f"ghostnode-client {VERSION}\n\nCommands:\n  import <gn://link>              import server config from a gn:// link\n  list                            list saved configs\n  remove <name>                   remove a saved config\n  run [name] [--port [host:]port] start SOCKS5 proxy\n  run [name] --stdio              start JSON stdio bridge\n  qr [name]                       show QR code for a config\n\nOptions:\n  -h, --help                      show this help\n  --version                       show version")
         return
     cmd=args[0]
     rest=args[1:]
