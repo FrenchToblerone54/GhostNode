@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 
 logger=logging.getLogger(__name__)
 
+_CURRENT_VERSION=2
+
 SCHEMA="""
 CREATE TABLE IF NOT EXISTS inbounds (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,7 +17,18 @@ CREATE TABLE IF NOT EXISTS inbounds (
     path TEXT DEFAULT '/gn',
     ssl_cert TEXT DEFAULT '',
     ssl_key TEXT DEFAULT '',
-    enabled INTEGER DEFAULT 1
+    enabled INTEGER DEFAULT 1,
+    ext_host TEXT DEFAULT '',
+    ext_port INTEGER DEFAULT 0,
+    ext_tls INTEGER DEFAULT 0,
+    host TEXT DEFAULT '',
+    sni TEXT DEFAULT '',
+    listen_ip TEXT DEFAULT '0.0.0.0',
+    pool_size INTEGER DEFAULT 8,
+    poll_connections INTEGER DEFAULT 4,
+    ping_interval INTEGER DEFAULT 20,
+    ping_timeout INTEGER DEFAULT 10,
+    user_agent TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,6 +99,26 @@ CREATE TABLE IF NOT EXISTS xray_clients (
 );
 """
 
+_MIGRATIONS=[
+    [
+        "ALTER TABLE outbounds ADD COLUMN ord INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN ext_host TEXT DEFAULT ''",
+        "ALTER TABLE inbounds ADD COLUMN ext_port INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN ext_tls INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN host TEXT DEFAULT ''",
+        "ALTER TABLE inbounds ADD COLUMN sni TEXT DEFAULT ''",
+        "ALTER TABLE inbounds ADD COLUMN listen_ip TEXT DEFAULT '0.0.0.0'",
+        "ALTER TABLE routing_rules ADD COLUMN enabled INTEGER DEFAULT 1",
+    ],
+    [
+        "ALTER TABLE inbounds ADD COLUMN pool_size INTEGER DEFAULT 8",
+        "ALTER TABLE inbounds ADD COLUMN poll_connections INTEGER DEFAULT 4",
+        "ALTER TABLE inbounds ADD COLUMN ping_interval INTEGER DEFAULT 20",
+        "ALTER TABLE inbounds ADD COLUMN ping_timeout INTEGER DEFAULT 10",
+        "ALTER TABLE inbounds ADD COLUMN user_agent TEXT DEFAULT ''",
+    ],
+]
+
 class Database:
     def __init__(self, path):
         self._path=path
@@ -98,15 +131,13 @@ class Database:
         await self._db.execute("PRAGMA foreign_keys=ON")
         await self._db.executescript(SCHEMA)
         await self._db.commit()
-        await self._migrate()
-        await self._migrate_fk()
+        await self._run_migrations()
         await self._ensure_defaults()
 
-    async def _migrate_fk(self):
+    async def _add_fk_constraints(self):
         async with self._db.execute("PRAGMA foreign_key_list(routing_rules)") as cur:
-            has_fk=bool(await cur.fetchone())
-        if has_fk:
-            return
+            if bool(await cur.fetchone()):
+                return
         logger.info("migrating schema: adding foreign key constraints")
         await self._db.execute("PRAGMA foreign_keys=OFF")
         await self._db.execute("DELETE FROM routing_rules WHERE outbound_tag NOT IN (SELECT tag FROM outbounds)")
@@ -147,27 +178,20 @@ class Database:
         await self._db.execute("PRAGMA foreign_keys=ON")
         logger.info("schema migration complete")
 
-    async def _migrate(self):
-        for stmt in (
-            "ALTER TABLE outbounds ADD COLUMN ord INTEGER DEFAULT 0",
-            "ALTER TABLE inbounds ADD COLUMN ext_host TEXT DEFAULT ''",
-            "ALTER TABLE inbounds ADD COLUMN ext_port INTEGER DEFAULT 0",
-            "ALTER TABLE inbounds ADD COLUMN ext_tls INTEGER DEFAULT 0",
-            "ALTER TABLE inbounds ADD COLUMN host TEXT DEFAULT ''",
-            "ALTER TABLE inbounds ADD COLUMN sni TEXT DEFAULT ''",
-            "ALTER TABLE inbounds ADD COLUMN listen_ip TEXT DEFAULT '0.0.0.0'",
-            "ALTER TABLE routing_rules ADD COLUMN enabled INTEGER DEFAULT 1",
-            "ALTER TABLE inbounds ADD COLUMN pool_size INTEGER DEFAULT 8",
-            "ALTER TABLE inbounds ADD COLUMN poll_connections INTEGER DEFAULT 4",
-            "ALTER TABLE inbounds ADD COLUMN ping_interval INTEGER DEFAULT 20",
-            "ALTER TABLE inbounds ADD COLUMN ping_timeout INTEGER DEFAULT 10",
-            "ALTER TABLE inbounds ADD COLUMN user_agent TEXT DEFAULT ''",
-        ):
-            try:
-                await self._db.execute(stmt)
-                await self._db.commit()
-            except Exception:
-                pass
+    async def _run_migrations(self):
+        async with self._db.execute("PRAGMA user_version") as cur:
+            version=(await cur.fetchone())[0]
+        if version==0:
+            await self._add_fk_constraints()
+        for i,stmts in enumerate(_MIGRATIONS[version:],start=version):
+            logger.info(f"migrating schema v{i} → v{i+1}")
+            for stmt in stmts:
+                try:
+                    await self._db.execute(stmt)
+                except Exception:
+                    pass
+            await self._db.execute(f"PRAGMA user_version={i+1}")
+            await self._db.commit()
 
     async def _ensure_defaults(self):
         async with self._db.execute("SELECT tag FROM outbounds WHERE tag='direct'") as cur:

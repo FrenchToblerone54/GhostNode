@@ -229,6 +229,33 @@ def cmd_remove(args):
     save_configs(configs)
     print(f"removed: {name}")
 
+def _cfg_to_link(cfg):
+    nanoid=cfg["nanoid"]
+    host=cfg["host"]
+    port=cfg["port"]
+    transport=cfg["transport"]
+    path=cfg["path"]
+    security="tls" if cfg.get("url","").startswith("wss://") or cfg.get("url","").startswith("https://") else "none"
+    p={"transport":transport,"path":path,"security":security}
+    if cfg.get("sni"):
+        p["sni"]=cfg["sni"]
+    if cfg.get("fp"):
+        p["fp"]=cfg["fp"]
+    return f"gn://{nanoid}@{host}:{port}?{urllib.parse.urlencode(p)}#{urllib.parse.quote(cfg['name'])}"
+
+def cmd_export(args):
+    name=args[0] if args else None
+    configs=load_configs()
+    if not configs:
+        print("no configs saved")
+        return
+    targets=({name:configs[name]} if name and name in configs else {} if name else configs)
+    if not targets:
+        print(f"config not found: {name}")
+        sys.exit(1)
+    for cfg in targets.values():
+        print(_cfg_to_link(cfg))
+
 def cmd_qr(args):
     name=args[0] if args else None
     configs=load_configs()
@@ -239,13 +266,7 @@ def cmd_qr(args):
     if not cfg:
         print(f"config not found: {name}")
         return
-    nanoid=cfg["nanoid"]
-    host=cfg["host"]
-    port=cfg["port"]
-    transport=cfg["transport"]
-    path=cfg["path"]
-    security="tls" if cfg.get("url","").startswith("wss://") or cfg.get("url","").startswith("https://") else "none"
-    link=f"gn://{nanoid}@{host}:{port}?transport={transport}&path={urllib.parse.quote(path)}&security={security}#{urllib.parse.quote(cfg['name'])}"
+    link=_cfg_to_link(cfg)
     try:
         import qrcode
         qr=qrcode.QRCode()
@@ -261,12 +282,14 @@ def main():
         print(f"ghostnode-client {VERSION}")
         return
     if not args or args[0] in ("-h","--help"):
-        print(f"ghostnode-client {VERSION}\n\nCommands:\n  import <gn://link>              import server config from a gn:// link\n  list                            list saved configs\n  remove <name>                   remove a saved config\n  run [name] [--port [host:]port] start SOCKS5 proxy\n  run [name] --stdio              start JSON stdio bridge\n  qr [name]                       show QR code for a config\n\nOptions:\n  -h, --help                      show this help\n  --version                       show version")
+        print(f"ghostnode-client {VERSION}\n\nCommands:\n  import <gn://link>              import server config from a gn:// link\n  export [name]                   print gn:// link(s) for saved configs\n  list                            list saved configs\n  remove <name>                   remove a saved config\n  run [name] [--port [host:]port] start SOCKS5 proxy\n  run [name] --stdio              start JSON stdio bridge\n  qr [name]                       show QR code for a config\n\nOptions:\n  -h, --help                      show this help\n  --version                       show version")
         return
     cmd=args[0]
     rest=args[1:]
     if cmd=="import":
         cmd_import(rest)
+    elif cmd=="export":
+        cmd_export(rest)
     elif cmd=="list":
         cmd_list(rest)
     elif cmd=="remove":
