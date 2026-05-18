@@ -91,54 +91,39 @@ class BlockOutbound(Outbound):
 
 class GhostNodeOutbound(Outbound):
     def __init__(self, url, nanoid, transport_type, path="/gn", sni="", allow_insecure=False, host_header="", extra_config=None):
-        self._url=url
-        self._nanoid=nanoid
-        self._transport_type=transport_type
-        self._path=path
-        self._sni=sni
-        self._allow_insecure=allow_insecure
-        self._host=host_header
-        self._extra=extra_config or {}
+        self._cfg={
+            "nanoid": nanoid,
+            "url": url,
+            "transport": transport_type,
+            "path": path,
+            "sni": sni,
+            "allow_insecure": allow_insecure,
+            "host": host_header,
+            "fp": (extra_config or {}).get("fp", ""),
+            "pool_size": (extra_config or {}).get("pool_size", 8),
+            "poll_connections": (extra_config or {}).get("poll_connections", 4),
+            "ping_interval": (extra_config or {}).get("ping_interval", 20),
+            "ping_timeout": (extra_config or {}).get("ping_timeout", 10),
+            "user_agent": (extra_config or {}).get("user_agent", ""),
+            "max_upload_bytes": (extra_config or {}).get("max_upload_bytes", 1048576),
+            "max_download_bytes": (extra_config or {}).get("max_download_bytes", 1048576),
+            "min_download_ms": (extra_config or {}).get("min_download_ms", 0),
+            "poll_min_connections": (extra_config or {}).get("poll_min_connections", 1),
+            "ws_send_batch_bytes": (extra_config or {}).get("ws_send_batch_bytes", 65536),
+        }
 
     async def connect(self, addr, port, protocol="tcp"):
-        from core.protocol import encode_header,CMD_TCP,CMD_UDP,ADDR_IPV4,ADDR_DOMAIN,ADDR_IPV6
+        from client.connector import connect_to_server
         try:
             socket.inet_aton(addr)
-            addr_type=ADDR_IPV4
+            atyp=0x01
         except (socket.error, OSError):
             try:
                 socket.inet_pton(socket.AF_INET6, addr)
-                addr_type=ADDR_IPV6
+                atyp=0x04
             except (socket.error, OSError):
-                addr_type=ADDR_DOMAIN
-        cmd=CMD_UDP if protocol=="udp" else CMD_TCP
-        header=encode_header(self._nanoid, cmd, addr_type, addr, port)
-        reader,writer=await self._open_transport()
-        writer.write(header)
-        await writer.drain()
-        return reader,writer
-
-    async def _open_transport(self):
-        h=self._host
-        if self._transport_type=="websocket":
-            from transport.websocket import connect as ws_connect
-            return await ws_connect(self._url, self._path, self._sni, self._allow_insecure, h)
-        elif self._transport_type=="http2":
-            from transport.http2 import connect as h2_connect
-            return await h2_connect(self._url, self._path, self._sni, self._allow_insecure, h)
-        elif self._transport_type=="grpc":
-            from transport.grpc import connect as grpc_connect
-            return await grpc_connect(self._url, self._sni, self._allow_insecure, h)
-        elif self._transport_type=="http-request":
-            from transport.http_request import connect as hr_connect
-            return await hr_connect(self._url, self._path, self._sni, self._allow_insecure, self._extra, h)
-        elif self._transport_type=="http-request-sse":
-            from transport.http_request_sse import connect as sse_connect
-            return await sse_connect(self._url, self._path, self._sni, self._allow_insecure, self._extra, h)
-        elif self._transport_type=="http-request-body":
-            from transport.http_request_body import connect as hrb_connect
-            return await hrb_connect(self._url, self._path, self._sni, self._allow_insecure, self._extra, h)
-        raise ValueError(f"unknown transport: {self._transport_type}")
+                atyp=0x03
+        return await connect_to_server(self._cfg, addr, port, atyp)
 
 class Socks5Outbound(Outbound):
     def __init__(self, host, port, username="", password="", sockopt=None, bind_address="", interface="", dialer_proxy_tag=""):

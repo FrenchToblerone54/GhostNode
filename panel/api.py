@@ -332,6 +332,39 @@ def api_outbounds_reorder():
     _reload_router()
     return jsonify({"ok":True})
 
+@panel_route("/api/outbounds/<int:id>/test",methods=["POST"])
+def api_outbound_test(id):
+    from core.outbound import build_outbound,BlockedError
+    ob=_run_async(_db.get_outbound(id))
+    if not ob:
+        return jsonify({"error":"not found"}),404
+    async def _do_test():
+        import time as _time
+        ob_cfg={"type":ob["type"],"config":ob.get("config","{}")}
+        outbound=build_outbound(ob_cfg)
+        t0=_time.monotonic()
+        try:
+            reader,writer=await asyncio.wait_for(outbound.connect("connectivitycheck.gstatic.com",80),timeout=10)
+        except asyncio.TimeoutError:
+            raise ConnectionError("timeout")
+        try:
+            writer.write(b"GET /generate_204 HTTP/1.1\r\nHost: connectivitycheck.gstatic.com\r\nConnection: close\r\n\r\n")
+            await writer.drain()
+            resp=await asyncio.wait_for(reader.read(64),timeout=10)
+            if not resp:
+                raise ConnectionError("empty response")
+            latency=int((_time.monotonic()-t0)*1000)
+            return latency
+        finally:
+            writer.close()
+    try:
+        latency=_run_async(_do_test())
+        return jsonify({"latency_ms":latency})
+    except BlockedError:
+        return jsonify({"error":"blocked"})
+    except Exception as e:
+        return jsonify({"error":str(e)})
+
 @panel_route("/api/routing",methods=["GET","POST"])
 def api_routing():
     if request.method=="POST":

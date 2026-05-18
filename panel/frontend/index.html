@@ -172,6 +172,8 @@ textarea.fi{min-height:80px;resize:vertical;font-family:'JetBrains Mono',monospa
 .gn-parse-input::placeholder{color:var(--text3);font-family:'Outfit',sans-serif;font-size:.87em}
 .svc-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);display:inline-block;animation:blink 2.5s infinite;margin-right:5px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .8s linear infinite;display:inline-block}
 .bulk-bar{display:none;align-items:center;gap:8px;padding:8px 14px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:var(--radius-sm);margin-bottom:10px;flex-wrap:wrap}
 .bulk-bar.show{display:flex}
 .bulk-info{font-size:.82em;font-weight:700;color:var(--accent);flex:1}
@@ -1470,6 +1472,7 @@ ${!isSystem?`<div style="display:flex;align-items:center;gap:4px">
 <td><span class="badge ${typeBadge}">${o.type}</span></td>
 <td><span class="mono" style="color:var(--text2);font-size:.78em">${esc(cfg)||"<span style=\"color:var(--text3)\">-</span>"}</span></td>
 <td class="tbl-actions">${!isSystem?`<div class="tbl-actions-inner">
+<button class="btn btn-ghost btn-sm" id="ob-test-${o.id}" onclick="testOutbound(${o.id},this)" title="Test"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
 <button class="btn btn-icon btn-sm" onclick="openOutboundModal(${o.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
 <button class="btn btn-danger btn-sm" onclick="deleteOutbound(${o.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
 </div>`:"<span style=\"color:var(--text3);font-size:.78em\">system</span>"}</td></tr>`;
@@ -1676,6 +1679,17 @@ if(!confirm("Delete this outbound?"))return;
 await api("DELETE",`/api/outbounds/${id}`);
 await loadOutbounds();
 showAlert("outbounds","Outbound deleted");
+}
+async function testOutbound(id,btn){
+const orig=btn.innerHTML;
+btn.disabled=true;
+btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
+try{
+const d=await api("POST",`/api/outbounds/${id}/test`);
+if(d.latency_ms!=null)btn.innerHTML=`<span style="font-size:.75em;color:var(--accent)">${d.latency_ms}ms</span>`;
+else btn.innerHTML=`<span style="font-size:.75em;color:var(--danger)">${esc(d.error||"err")}</span>`;
+}catch(e){btn.innerHTML=`<span style="font-size:.75em;color:var(--danger)">err</span>`;}
+setTimeout(()=>{btn.innerHTML=orig;btn.disabled=false;},3000);
 }
 
 // ---- LOGS ----
