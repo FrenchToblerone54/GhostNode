@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GhostNode Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="{{prefix}}/static/fonts/fonts.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0d1117;--bg2:#111827;--sidebar:#0a0f1a;--card:#161b27;--card2:#1c2333;
+--border:#1e2d3d;--border2:#243447;--accent:#00e5a0;--accent-dim:rgba(0,229,160,0.1);
+--accent-border:rgba(0,229,160,0.2);--accent-glow:rgba(0,229,160,0.15);
+--danger:#ef4444;--danger-dim:rgba(239,68,68,0.1);--warning:#f59e0b;
+--warning-dim:rgba(245,158,11,0.1);--blue:#3b82f6;--blue-dim:rgba(59,130,246,0.1);
+--purple:#a78bfa;--purple-dim:rgba(167,139,250,0.1);
+--text:#c9d8e8;--text2:#8ba3bc;--text3:#4a6380;--radius:10px;--radius-sm:7px;
+--shadow:0 4px 24px rgba(0,0,0,0.4)
+}
+[data-theme="light"]{
+--bg:#f1f5f9;--bg2:#e8edf5;--sidebar:#dde4ee;--card:#ffffff;--card2:#f0f4f9;
+--border:#cdd6e0;--border2:#b5c3d0;--accent:#00b87a;--text:#1e293b;--text2:#475569;
+--text3:#94a3b8;--shadow:0 4px 24px rgba(0,0,0,0.08)
+}
+[data-theme="light"] .nav-item.active{color:#fff}
+[data-theme="light"] .btn-accent{color:#fff}
+[data-theme="light"] .gauge-text{fill:var(--text)}
+[data-theme="light"] .modal-hd h3{color:var(--text)}
+[data-theme="light"] .topbar-brand{color:var(--text)}
+[data-theme="light"] .log-viewer{color:var(--text2)}
+[data-theme="light"] .tbl tr:hover td{background:rgba(0,0,0,.02)}
+[data-theme="light"] .sb-name{color:var(--text)}
+[data-theme="light"] .page-title{color:var(--text)}
+[data-theme="light"] .log-actions select{color:var(--text)}
+[data-theme="light"] .qr-svg-wrap{border:1px solid var(--border2)}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px;overflow-x:hidden}
+body.fa{font-family:'Vazirmatn','Tahoma','Outfit',sans-serif}
+.sidebar{width:188px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+.sb-brand{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.sb-name{font-size:1.05em;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;letter-spacing:-.3px}
+.sb-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);flex-shrink:0}
+.sb-version{font-size:.7em;font-weight:700;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-border);padding:2px 7px;border-radius:20px}
+.sb-sub{font-size:.72em;color:var(--text3);font-weight:500;margin-top:3px;padding-left:16px}
+.sb-nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:.88em;font-weight:600;color:var(--text2);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'Outfit',sans-serif}
+body.fa .nav-item{font-family:'Vazirmatn','Tahoma',sans-serif}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.nav-item.active{color:#0d1117;background:var(--accent);font-weight:700}
+.nav-item.active svg{opacity:1}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.sb-controls{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border)}
+.ctrl-btn{flex:1;padding:7px 5px;border-radius:var(--radius-sm);border:1px solid var(--border);background:none;color:var(--text2);cursor:pointer;font-size:.75em;font-weight:700;font-family:'Outfit',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:4px}
+body.fa .ctrl-btn{font-family:'Vazirmatn','Tahoma',sans-serif}
+.ctrl-btn:hover{color:var(--text);border-color:var(--border2)}
+.sb-footer{padding:10px}
+.main{flex:1;margin-left:188px;min-height:100vh}
+.topbar{display:none;align-items:center;gap:12px;padding:12px 16px;background:var(--sidebar);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+.topbar-brand{font-size:.95em;font-weight:800;color:#fff;flex:1}
+.hamburger{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:flex;align-items:center}
+.hamburger:hover{color:var(--text)}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+.sb-overlay.open{display:block}
+.main-body{padding:22px 26px;max-width:1500px}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:1.05em;font-weight:800;color:#fff;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
+.gauge-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px 16px;display:flex;flex-direction:column;align-items:center}
+.gauge-svg{width:110px;height:110px}
+.gauge-svg circle{fill:none;stroke-width:8;stroke-linecap:round}
+.gauge-bg{stroke:var(--border2)}
+.gauge-fill{transition:stroke-dashoffset .8s ease}
+.gauge-text{font-size:1.35em;font-weight:800;fill:#fff}
+.gauge-label{margin-top:10px;font-size:.8em;color:var(--text2);text-align:center;font-weight:600}
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.card-hd{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-title{font-size:.88em;font-weight:700;color:var(--text)}
+.card-bd{padding:14px 18px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-k{font-size:.78em;color:var(--text2);font-weight:600}
+.stat-v{font-size:.86em;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.speed-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.speed-label{font-size:.72em;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.speed-val{font-size:1em;font-weight:700;color:var(--text)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.75em;font-weight:700;border:1px solid;white-space:nowrap}
+.badge-accent{color:var(--accent);border-color:var(--accent-border);background:var(--accent-dim)}
+.badge-danger{color:var(--danger);border-color:rgba(239,68,68,.25);background:var(--danger-dim)}
+.badge-warning{color:var(--warning);border-color:rgba(245,158,11,.25);background:var(--warning-dim)}
+.badge-blue{color:var(--blue);border-color:rgba(59,130,246,.25);background:var(--blue-dim)}
+.badge-purple{color:var(--purple);border-color:rgba(167,139,250,.25);background:var(--purple-dim)}
+.badge-muted{color:var(--text2);border-color:var(--border2);background:rgba(255,255,255,.03)}
+.page-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:180px;max-width:320px;position:relative}
+.search-wrap input{width:100%;padding:8px 14px 8px 32px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'Outfit',sans-serif;font-size:.87em;font-weight:500;transition:border-color .15s}
+body.fa .search-wrap input{font-family:'Vazirmatn','Tahoma',sans-serif}
+.search-wrap input:focus{outline:none;border-color:var(--border2)}
+.search-wrap input::placeholder{color:var(--text3)}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;width:14px;height:14px}
+.btn{padding:9px 18px;border-radius:var(--radius-sm);border:none;font-size:.84em;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;white-space:nowrap}
+body.fa .btn{font-family:'Vazirmatn','Tahoma',sans-serif}
+.btn-accent{background:var(--accent);color:#0d1117}
+.btn-accent:hover{background:#00cc8e;box-shadow:0 0 18px var(--accent-glow)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{color:#fff;border-color:var(--text)}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:var(--danger-dim)}
+.btn-icon{background:transparent;color:var(--text2);border:1px solid var(--border);padding:5px 7px}
+.btn-icon:hover{color:var(--accent);border-color:var(--accent-border)}
+.btn-sm{padding:4px 10px;font-size:.78em}
+.table-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;padding:9px 14px;font-size:.73em;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:.86em;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.015)}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.82em}
+.nanoid-cell{font-family:'JetBrains Mono',monospace;font-size:.8em;color:var(--accent);cursor:default}
+.prog-wrap{display:flex;align-items:center;gap:8px}
+.prog-bar{width:72px;height:4px;background:rgba(255,255,255,.06);border-radius:2px;flex-shrink:0;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .3s}
+.prog-txt{font-size:.78em;color:var(--text2);font-weight:600;white-space:nowrap}
+.tbl-actions{vertical-align:middle;white-space:nowrap;text-align:right}
+.tbl-actions-inner{display:inline-flex;gap:5px;align-items:center}
+.empty-state{padding:40px;text-align:center;color:var(--text2)}
+.empty-state p{font-size:.88em;font-weight:600}
+.toggle-btn{width:38px;height:20px;border-radius:10px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle-btn.on{background:var(--accent)}
+.toggle-btn.off{background:var(--border2)}
+.toggle-btn::after{content:'';width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:3px;transition:left .2s}
+.toggle-btn.on::after{left:21px}
+.toggle-btn.off::after{left:3px}
+.alert{padding:10px 16px;border-radius:var(--radius-sm);font-size:.84em;font-weight:700;display:none;align-items:center;gap:8px;animation:fadein .2s ease;margin-bottom:12px}
+.alert.show{display:flex}
+.alert.ok{background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent)}
+.alert.err{background:var(--danger-dim);border:1px solid rgba(239,68,68,.25);color:var(--danger)}
+@keyframes fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);width:500px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.modal.wide{width:600px}
+.modal.narrow{width:420px}
+.modal-hd{padding:17px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.modal-hd h3{font-size:.92em;font-weight:800;color:#fff}
+.modal-x{background:none;border:none;color:var(--text2);cursor:pointer;font-size:1.2em;line-height:1;padding:2px;transition:color .15s}
+.modal-x:hover{color:#fff}
+.modal-bd{padding:18px 22px;display:flex;flex-direction:column;gap:13px}
+.modal-ft{padding:13px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fl{font-size:.74em;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.fi{padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'Outfit',sans-serif;font-size:.87em;font-weight:500;width:100%;transition:border-color .15s}
+body.fa .fi{font-family:'Vazirmatn','Tahoma',sans-serif}
+.fi:focus{outline:none;border-color:var(--accent)}
+.fi::placeholder{color:var(--text3)}
+select.fi option{background:var(--card)}
+textarea.fi{min-height:80px;resize:vertical;font-family:'JetBrains Mono',monospace;font-size:.82em}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.log-viewer{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-family:'JetBrains Mono',monospace;font-size:.8em;max-height:600px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;color:var(--text2);line-height:1.8}
+.log-actions{display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.log-actions select{padding:7px 11px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);color:#fff;font-family:'Outfit',sans-serif;font-size:.84em;font-weight:600}
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0}
+.qr-link-box{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'JetBrains Mono',monospace;font-size:.78em;color:var(--accent);word-break:break-all;line-height:1.6}
+.qr-svg-wrap{background:#fff;border-radius:var(--radius-sm);padding:10px;display:inline-flex}
+.qr-svg-wrap svg{width:180px;height:180px}
+.section-divider{height:1px;background:var(--border);margin:6px 0}
+.fg-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fg-row .fl{margin-bottom:0}
+.gn-parse-input{border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:8px 12px;background:rgba(0,229,160,.04);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.8em;width:100%}
+.gn-parse-input:focus{outline:none;border-color:var(--accent)}
+.gn-parse-input::placeholder{color:var(--text3);font-family:'Outfit',sans-serif;font-size:.87em}
+.svc-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);display:inline-block;animation:blink 2.5s infinite;margin-right:5px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.bulk-bar{display:none;align-items:center;gap:8px;padding:8px 14px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:var(--radius-sm);margin-bottom:10px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-info{font-size:.82em;font-weight:700;color:var(--accent);flex:1}
+.cb-wrap{display:flex;align-items:center;justify-content:center}
+.cb-wrap input[type="checkbox"]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+.drag-handle{color:var(--text3);cursor:grab;padding:2px 5px;font-size:1em;user-select:none;line-height:1}
+.drag-handle:hover{color:var(--accent)}
+tr.dragging{opacity:.4}
+tr.drag-over-top td{border-top:2px solid var(--accent)!important}
+.mob-menu-wrap{position:relative;display:inline-block}
+.mob-dropdown{display:none;position:fixed;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);z-index:300;min-width:90px;overflow:hidden;box-shadow:var(--shadow)}
+.mob-menu-wrap.open .mob-dropdown{display:block}
+.mob-dropdown button{display:block;width:100%;padding:7px 12px;background:none;border:none;color:var(--text);font-size:.82em;font-weight:600;cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;white-space:nowrap}
+body.fa .mob-dropdown button{font-family:'Vazirmatn','Tahoma',sans-serif}
+.mob-dropdown button:hover{background:rgba(255,255,255,.06)}
+@media(max-width:900px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.open{transform:translateX(0)}
+.main{margin-left:0}
+.gauges{grid-template-columns:repeat(2,1fr)}
+.cards-grid{grid-template-columns:1fr}
+.topbar{display:flex}
+.main-body{padding:14px}
+}
+@media(max-width:600px){
+.gauges{grid-template-columns:1fr 1fr}
+.fi-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+<div class="sb-brand">
+<div class="sb-name">
+<span class="sb-dot"></span>
+GhostNode
+<span class="sb-version" id="sb-ver">...</span>
+</div>
+<div class="sb-sub">Proxy Panel</div>
+</div>
+<nav class="sb-nav">
+<button class="nav-item active" onclick="switchPage('overview',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span data-i18n="nav_overview">Overview</span>
+</button>
+<button class="nav-item" onclick="switchPage('inbounds',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span data-i18n="nav_inbounds">Inbounds</span>
+</button>
+<button class="nav-item" onclick="switchPage('clients',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="nav_clients">Clients</span>
+</button>
+<button class="nav-item" onclick="switchPage('routing',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h6l3 9 5-6h4"/><path d="M9 12l-6 9"/><path d="M12 12l6 9"/></svg><span data-i18n="nav_routing">Routing</span>
+</button>
+<button class="nav-item" onclick="switchPage('outbounds',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span data-i18n="nav_outbounds">Outbounds</span>
+</button>
+<button class="nav-item" onclick="switchPage('xray',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span data-i18n="nav_xray">Xray</span>
+</button>
+<button class="nav-item" onclick="switchPage('logs',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span data-i18n="nav_logs">Logs</span>
+</button>
+<button class="nav-item" onclick="switchPage('settings',this)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span data-i18n="nav_settings">Settings</span>
+</button>
+</nav>
+<div class="sb-controls">
+<button class="ctrl-btn" id="theme-btn" onclick="toggleTheme()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+</button>
+<button class="ctrl-btn" id="lang-btn" onclick="toggleLang()"><span id="lang-label">EN</span></button>
+</div>
+<div class="sb-footer">
+<button class="nav-item" onclick="refreshPage()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg><span data-i18n="nav_refresh">Refresh</span>
+</button>
+</div>
+</aside>
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+<main class="main">
+<div class="topbar">
+<button class="hamburger" onclick="toggleSidebar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+<div class="topbar-brand">GhostNode</div>
+</div>
+<div class="main-body">
+
+<!-- OVERVIEW -->
+<div class="page active" id="page-overview">
+<div class="gauges">
+<div class="gauge-card">
+<svg class="gauge-svg" viewBox="0 0 110 110">
+<circle class="gauge-bg" cx="55" cy="55" r="46" stroke-dasharray="289" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+<circle class="gauge-fill" id="g-cpu" cx="55" cy="55" r="46" stroke="var(--accent)" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 55 55)"/>
+<text class="gauge-text" x="55" y="59" text-anchor="middle" id="g-cpu-txt">0%</text>
+</svg>
+<div class="gauge-label">CPU: <span id="g-cpu-cores">-</span></div>
+</div>
+<div class="gauge-card">
+<svg class="gauge-svg" viewBox="0 0 110 110">
+<circle class="gauge-bg" cx="55" cy="55" r="46" stroke-dasharray="289" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+<circle class="gauge-fill" id="g-ram" cx="55" cy="55" r="46" stroke="var(--accent)" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 55 55)"/>
+<text class="gauge-text" x="55" y="59" text-anchor="middle" id="g-ram-txt">0%</text>
+</svg>
+<div class="gauge-label">RAM: <span id="g-ram-info">-</span></div>
+</div>
+<div class="gauge-card">
+<svg class="gauge-svg" viewBox="0 0 110 110">
+<circle class="gauge-bg" cx="55" cy="55" r="46" stroke-dasharray="289" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+<circle class="gauge-fill" id="g-swap" cx="55" cy="55" r="46" stroke="var(--accent)" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 55 55)"/>
+<text class="gauge-text" x="55" y="59" text-anchor="middle" id="g-swap-txt">0%</text>
+</svg>
+<div class="gauge-label">Swap: <span id="g-swap-info">-</span></div>
+</div>
+<div class="gauge-card">
+<svg class="gauge-svg" viewBox="0 0 110 110">
+<circle class="gauge-bg" cx="55" cy="55" r="46" stroke-dasharray="289" stroke-dashoffset="0" transform="rotate(-90 55 55)"/>
+<circle class="gauge-fill" id="g-disk" cx="55" cy="55" r="46" stroke="var(--accent)" stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 55 55)"/>
+<text class="gauge-text" x="55" y="59" text-anchor="middle" id="g-disk-txt">0%</text>
+</svg>
+<div class="gauge-label">Disk: <span id="g-disk-info">-</span></div>
+</div>
+</div>
+<div class="cards-grid">
+<div class="card">
+<div class="card-hd"><span class="card-title" data-i18n="ov_server_status">Server Status</span><span class="svc-dot"></span></div>
+<div class="card-bd">
+<div class="stat-row"><span class="stat-k">GhostNode</span><span class="stat-v" id="ov-version" style="color:var(--accent)">-</span></div>
+<div class="stat-row"><span class="stat-k" data-i18n="ov_uptime">Uptime</span><span class="stat-v" id="ov-uptime" style="color:var(--accent)">-</span></div>
+<div class="stat-row"><span class="stat-k" data-i18n="ov_panel_path">Panel Path</span><span class="stat-v mono" id="ov-path" style="font-size:.78em;color:var(--text2)">-</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-hd"><span class="card-title" data-i18n="ov_network">Network</span></div>
+<div class="card-bd">
+<div class="speed-grid" style="margin-bottom:14px">
+<div><div class="speed-label" data-i18n="ov_upload">Upload</div><div class="speed-val"><span style="color:var(--accent)">↑</span> <span id="ov-up">- B/s</span></div></div>
+<div><div class="speed-label" data-i18n="ov_download">Download</div><div class="speed-val"><span style="color:var(--accent)">↓</span> <span id="ov-dn">- B/s</span></div></div>
+</div>
+<div class="stat-row"><span class="stat-k">Load 1m</span><span class="stat-v" id="ov-l1" style="color:var(--accent)">-</span></div>
+<div class="stat-row"><span class="stat-k">Load 5m</span><span class="stat-v" id="ov-l5" style="color:var(--accent)">-</span></div>
+<div class="stat-row"><span class="stat-k">Load 15m</span><span class="stat-v" id="ov-l15" style="color:var(--accent)">-</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- INBOUNDS -->
+<div class="page" id="page-inbounds">
+<div class="alert" id="alert-inbounds"></div>
+<div class="page-toolbar">
+<div class="page-title" style="margin:0" data-i18n="nav_inbounds">Inbounds</div>
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openInboundModal()" data-i18n="add_inbound">+ Add Inbound</button>
+</div>
+<div class="bulk-bar" id="bulk-bar-inbounds">
+<span class="bulk-info" id="bulk-info-inbounds">0 selected</span>
+<button class="btn btn-ghost btn-sm" onclick="bulkInbounds('enable')" data-i18n="bulk_enable">Enable</button>
+<button class="btn btn-ghost btn-sm" onclick="bulkInbounds('disable')" data-i18n="bulk_disable">Disable</button>
+<button class="btn btn-danger btn-sm" onclick="bulkInbounds('delete')" data-i18n="bulk_delete">Delete Selected</button>
+<button class="btn btn-ghost btn-sm" onclick="clearSelInbounds()">&#x2715;</button>
+</div>
+<div class="card">
+<div class="table-wrap">
+<table class="tbl">
+<thead><tr>
+<th style="width:32px"><div class="cb-wrap"><input type="checkbox" id="ib-check-all" onchange="selectAllInbounds(this)"></div></th>
+<th data-i18n="col_tag">Tag</th><th data-i18n="col_port">Port</th><th data-i18n="col_transport">Transport</th><th data-i18n="col_path">Path</th><th>SSL</th><th data-i18n="col_status">Status</th><th data-i18n="col_actions">Actions</th>
+</tr></thead>
+<tbody id="inbounds-tbody"><tr><td colspan="8" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- CLIENTS -->
+<div class="page" id="page-clients">
+<div class="alert" id="alert-clients"></div>
+<div class="page-toolbar">
+<div class="page-title" style="margin:0" data-i18n="nav_clients">Clients</div>
+<div class="search-wrap">
+<svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type="text" placeholder="Search clients..." id="client-search" oninput="renderClients()">
+</div>
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openClientModal()" data-i18n="add_client">+ Add Client</button>
+</div>
+<div class="bulk-bar" id="bulk-bar-clients">
+<span class="bulk-info" id="bulk-info-clients">0 selected</span>
+<button class="btn btn-ghost btn-sm" onclick="bulkClients('enable')" data-i18n="bulk_enable">Enable</button>
+<button class="btn btn-ghost btn-sm" onclick="bulkClients('disable')" data-i18n="bulk_disable">Disable</button>
+<button class="btn btn-danger btn-sm" onclick="bulkClients('delete')" data-i18n="bulk_delete">Delete Selected</button>
+<button class="btn btn-ghost btn-sm" onclick="clearSelClients()">&#x2715;</button>
+</div>
+<div class="card">
+<div class="table-wrap">
+<table class="tbl">
+<thead><tr>
+<th style="width:32px"><div class="cb-wrap"><input type="checkbox" id="cl-check-all" onchange="selectAllClients(this)"></div></th>
+<th data-i18n="col_name">Name</th><th>NanoID</th><th data-i18n="nav_inbounds">Inbound</th><th data-i18n="col_traffic">Traffic</th><th data-i18n="col_expire">Expire</th><th data-i18n="col_status">Status</th><th data-i18n="col_actions">Actions</th>
+</tr></thead>
+<tbody id="clients-tbody"><tr><td colspan="8" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- ROUTING -->
+<div class="page" id="page-routing">
+<div class="alert" id="alert-routing"></div>
+<div class="page-toolbar">
+<div class="page-title" style="margin:0" data-i18n="nav_routing">Routing Rules</div>
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openRuleModal()" data-i18n="add_rule">+ Add Rule</button>
+</div>
+<div class="card">
+<div class="table-wrap">
+<table class="tbl">
+<thead><tr>
+<th style="width:60px" data-i18n="col_order">Order</th><th data-i18n="col_domain">Domain</th><th>IP</th><th data-i18n="col_port">Port</th><th data-i18n="col_protocol">Protocol</th><th data-i18n="nav_inbounds">Inbound</th><th data-i18n="nav_outbounds">Outbound</th><th data-i18n="col_actions">Actions</th>
+</tr></thead>
+<tbody id="routing-tbody"><tr><td colspan="8" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- OUTBOUNDS -->
+<div class="page" id="page-outbounds">
+<div class="alert" id="alert-outbounds"></div>
+<div class="page-toolbar">
+<div class="page-title" style="margin:0" data-i18n="nav_outbounds">Outbounds</div>
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openOutboundModal()" data-i18n="add_outbound">+ Add Outbound</button>
+</div>
+<div class="card">
+<div class="table-wrap">
+<table class="tbl">
+<thead><tr>
+<th style="width:40px"></th><th data-i18n="col_tag">Tag</th><th data-i18n="col_type">Type</th><th data-i18n="col_config">Config</th><th data-i18n="col_actions">Actions</th>
+</tr></thead>
+<tbody id="outbounds-tbody"><tr><td colspan="5" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- XRAY -->
+<div class="page" id="page-xray">
+<div class="alert" id="alert-xray"></div>
+<div class="page-toolbar">
+<div class="page-title" style="margin:0">Xray Core</div>
+<div style="flex:1"></div>
+<div id="xray-status-bar" style="display:flex;align-items:center;gap:8px;font-size:.82em;color:var(--text2)"></div>
+</div>
+<div class="card" style="margin-bottom:12px">
+<div class="card-bd" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<span id="xray-status-text" style="font-size:.85em;color:var(--text2)">Loading...</span>
+<div style="flex:1"></div>
+<input class="fi" id="xray-install-proxy" type="text" placeholder="Proxy (optional, e.g. http://host:port)" style="max-width:260px;font-size:.8em">
+<button class="btn btn-ghost btn-sm" onclick="xrayAction('install')" id="btn-xray-install">Install</button>
+<button class="btn btn-ghost btn-sm" onclick="xrayAction('reinstall')" id="btn-xray-reinstall" style="display:none">Reinstall / Update</button>
+<button class="btn btn-ghost btn-sm" onclick="xrayAction('start')">Start</button>
+<button class="btn btn-ghost btn-sm" onclick="xrayAction('stop')">Stop</button>
+<button class="btn btn-ghost btn-sm" onclick="xrayAction('restart')">Restart</button>
+</div>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<button class="btn btn-ghost btn-sm" id="xtab-inbounds" onclick="switchXrayTab('inbounds')" style="font-weight:700;border-color:var(--accent);color:var(--accent)">Inbounds</button>
+<button class="btn btn-ghost btn-sm" id="xtab-clients" onclick="switchXrayTab('clients')">Clients</button>
+<button class="btn btn-ghost btn-sm" id="xtab-outbounds" onclick="switchXrayTab('outbounds')">Outbounds</button>
+</div>
+<div id="xray-tab-inbounds">
+<div class="page-toolbar" style="margin-bottom:10px">
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openXrayInboundModal()">+ Add Inbound</button>
+</div>
+<div class="card"><div class="table-wrap"><table class="tbl">
+<thead><tr><th data-i18n="col_tag">Tag</th><th data-i18n="col_port">Port</th><th data-i18n="col_protocol">Protocol</th><th>Enabled</th><th data-i18n="col_actions">Actions</th></tr></thead>
+<tbody id="xray-inbounds-tbody"><tr><td colspan="5" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table></div></div>
+</div>
+<div id="xray-tab-clients" style="display:none">
+<div class="page-toolbar" style="margin-bottom:10px">
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openXrayClientModal()">+ Add Client</button>
+</div>
+<div class="card"><div class="table-wrap"><table class="tbl">
+<thead><tr><th>Name</th><th>Inbound</th><th>UUID</th><th>Traffic</th><th>Expires</th><th>Enabled</th><th data-i18n="col_actions">Actions</th></tr></thead>
+<tbody id="xray-clients-tbody"><tr><td colspan="7" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table></div></div>
+</div>
+<div id="xray-tab-outbounds" style="display:none">
+<div class="page-toolbar" style="margin-bottom:10px">
+<div style="flex:1"></div>
+<button class="btn btn-accent" onclick="openXrayOutboundModal()">+ Add Outbound</button>
+</div>
+<div class="card"><div class="table-wrap"><table class="tbl">
+<thead><tr><th data-i18n="col_tag">Tag</th><th data-i18n="col_protocol">Protocol</th><th data-i18n="col_actions">Actions</th></tr></thead>
+<tbody id="xray-outbounds-tbody"><tr><td colspan="3" class="empty-state"><p data-i18n="loading">Loading...</p></td></tr></tbody>
+</table></div></div>
+</div>
+<div style="margin-top:20px">
+<div class="card">
+<div class="card-hd" style="cursor:pointer;user-select:none" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+<span class="card-title">Advanced — Raw Xray Config</span>
+<span style="font-size:.75em;color:var(--text2);margin-left:8px">Click to expand</span>
+</div>
+<div class="card-bd" style="display:none">
+<p style="font-size:.8em;color:var(--text2);margin-bottom:8px">Edit the full Xray JSON config directly. Fields set here override anything configured via the panel. Saved immediately and Xray is restarted.</p>
+<textarea id="xray-raw-cfg" rows="20" style="width:100%;font-family:monospace;font-size:.8em;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;resize:vertical;box-sizing:border-box"></textarea>
+<div style="margin-top:10px;display:flex;gap:8px">
+<button class="btn btn-accent" onclick="saveXrayRawConfig()">Save &amp; Restart Xray</button>
+<button class="btn btn-ghost" onclick="loadXray()">Reset</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- LOGS -->
+<div class="page" id="page-logs">
+<div class="log-actions" style="margin:0 8px">
+<button class="btn btn-ghost btn-sm" id="log-live-btn" onclick="toggleLiveLog()">▶ Start Live</button>
+<button class="btn btn-ghost btn-sm" onclick="loadLogs()" data-i18n="btn_refresh">Refresh</button>
+<button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-viewer').textContent=''">Clear</button>
+<select id="log-lines" onchange="loadLogs()">
+<option value="100">100 lines</option>
+<option value="200" selected>200 lines</option>
+<option value="500">500 lines</option>
+<option value="1000">1000 lines</option>
+</select>
+<label style="display:flex;align-items:center;gap:6px;font-size:.82em;color:var(--text2);cursor:pointer">
+<input type="checkbox" id="log-autoscroll" checked style="accent-color:var(--accent)"> Auto-scroll
+</label>
+</div>
+<div class="log-viewer" id="log-viewer" style="margin:0 8px">Loading logs...</div>
+</div>
+
+<div class="page" id="page-settings">
+<div class="page-title" style="margin-left:8px;margin-right:8px"><span data-i18n="nav_settings">Settings</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:860px;margin:0 8px">
+<div class="card">
+<div class="card-hd"><span class="card-title">Panel</span></div>
+<div class="card-bd" style="display:flex;flex-direction:column;gap:13px">
+<div class="fg"><label class="fl">Host</label><input class="fi" id="cfg-panel-host" placeholder="0.0.0.0"></div>
+<div class="fg"><label class="fl">Port</label><input class="fi" id="cfg-panel-port" type="number" placeholder="9090"></div>
+<div class="fg"><label class="fl">Path (secret URL segment)</label><input class="fi" id="cfg-panel-path" placeholder="ghostnode-panel"></div>
+<div class="fg"><label class="fl">Threads</label><input class="fi" id="cfg-panel-threads" type="number" placeholder="4"></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div class="card">
+<div class="card-hd"><span class="card-title">Logging</span></div>
+<div class="card-bd" style="display:flex;flex-direction:column;gap:13px">
+<div class="fg"><label class="fl">Level</label>
+<select class="fi" id="cfg-log-level">
+<option value="debug">debug</option>
+<option value="info">info</option>
+<option value="warning">warning</option>
+<option value="error">error</option>
+</select>
+</div>
+<div class="fg"><label class="fl">Log File (leave empty to disable)</label><input class="fi" id="cfg-log-file" placeholder="/var/log/ghostnode.log"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-hd"><span class="card-title">Server</span></div>
+<div class="card-bd" style="display:flex;flex-direction:column;gap:13px">
+<div class="fg"><label class="fl">Hostname (for link generation)</label><input class="fi" id="cfg-hostname" placeholder="example.com"></div>
+<div class="fg-row"><label class="fl">Auto Update</label><button class="toggle-btn off" id="cfg-auto-update" onclick="toggleBtn(this)"></button></div>
+<div class="fg-row"><label class="fl">Check on Startup</label><button class="toggle-btn off" id="cfg-update-on-startup" onclick="toggleBtn(this)"></button></div>
+<div class="fg"><label class="fl">Update Check Interval (seconds)</label><input class="fi" id="cfg-update-interval" type="number" placeholder="300" value="300"></div>
+<div class="fg"><label class="fl">Update Proxy (optional, e.g. http://127.0.0.1:1080)</label><input class="fi" id="cfg-update-proxy" placeholder=""></div>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;gap:10px;margin-top:16px;max-width:860px;margin-left:8px;margin-right:8px">
+<button class="btn btn-accent" onclick="saveSettings()"><span data-i18n="btn_save">Save</span></button>
+<button class="btn btn-ghost" onclick="saveSettings(true)" style="color:var(--warning);border-color:rgba(245,158,11,.3)">Save &amp; Restart</button>
+<button class="btn btn-ghost" onclick="checkUpdate()" id="btn-check-update">Check for Update</button>
+</div>
+<div id="settings-alert" style="margin-top:12px;max-width:860px;margin-left:8px;margin-right:8px"></div>
+</div>
+
+</div>
+</main>
+
+<!-- MODALS -->
+<div class="overlay" id="modal-inbound">
+<div class="modal">
+<div class="modal-hd"><h3 id="inbound-modal-title" data-i18n="add_inbound">Add Inbound</h3><button class="modal-x" onclick="closeModal('modal-inbound')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fg"><label class="fl" data-i18n="col_tag">Tag</label><input class="fi" id="ib-tag" placeholder="e.g. ws-443"></div>
+<div class="fi-row">
+<div class="fg"><label class="fl" data-i18n="col_port">Port</label><input class="fi" id="ib-port" type="number" placeholder="443"></div>
+<div class="fg"><label class="fl">Listen IP</label><input class="fi" id="ib-listen-ip" placeholder="0.0.0.0" value="0.0.0.0"></div>
+<div class="fg"><label class="fl" data-i18n="col_transport">Transport</label>
+<select class="fi" id="ib-transport">
+<option value="websocket">WebSocket</option>
+<option value="http2">HTTP/2</option>
+<option value="grpc">gRPC</option>
+<option value="http-request">HTTP Request</option>
+<option value="http-request-sse">HTTP Request SSE</option>
+<option value="http-request-body">HTTP Request Body</option>
+</select>
+</div>
+</div>
+<div class="fg"><label class="fl" data-i18n="col_path">Path</label><input class="fi" id="ib-path" placeholder="/gn" value="/gn"></div>
+<div class="fg"><label class="fl">SSL Certificate Path (optional)</label><input class="fi" id="ib-cert" placeholder="/etc/ssl/cert.pem"></div>
+<div class="fg"><label class="fl">SSL Key Path (optional)</label><input class="fi" id="ib-key" placeholder="/etc/ssl/key.pem"></div>
+<div class="fg"><label class="fl">SNI (TLS Server Name)</label><input class="fi" id="ib-sni" placeholder="example.com"></div>
+<div class="fg"><label class="fl">Host Header</label><input class="fi" id="ib-host" placeholder="example.com"></div>
+<div class="section-divider"></div>
+<div style="font-size:.74em;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">External Proxy (for config links)</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Override Address</label><input class="fi" id="ib-ext-host" placeholder="my.domain.com"></div>
+<div class="fg"><label class="fl">Override Port</label><input class="fi" id="ib-ext-port" type="number" placeholder="443"></div>
+</div>
+<div class="fg-row"><label class="fl">Force TLS in config link</label><button class="toggle-btn off" id="ib-ext-tls" onclick="toggleBtn(this)"></button></div>
+<div class="fg-row"><label class="fl" data-i18n="col_status">Enabled</label><button class="toggle-btn on" id="ib-enabled" onclick="toggleBtn(this)"></button></div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-inbound')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveInbound()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-client">
+<div class="modal">
+<div class="modal-hd"><h3 id="client-modal-title" data-i18n="add_client">Add Client</h3><button class="modal-x" onclick="closeModal('modal-client')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fg"><label class="fl" data-i18n="col_name">Name</label><input class="fi" id="cl-name" placeholder="Client name"></div>
+<div class="fg"><label class="fl" data-i18n="nav_inbounds">Inbound</label><select class="fi" id="cl-inbound"></select></div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Traffic Limit (GB, 0=unlimited)</label><input class="fi" id="cl-limit" type="number" placeholder="0" value="0" min="0"></div>
+<div class="fg"><label class="fl">Expire Date (optional)</label><input class="fi" id="cl-expire" type="date"></div>
+</div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-client')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveClient()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-config-link">
+<div class="modal narrow">
+<div class="modal-hd"><h3>Client Config</h3><button class="modal-x" onclick="closeModal('modal-config-link')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fg"><label class="fl">gn:// Link</label>
+<div style="position:relative">
+<div class="qr-link-box" id="config-link-text"></div>
+</div>
+<button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%" onclick="copyConfigLink()" data-i18n="btn_copy_link">Copy Link</button>
+</div>
+<div class="fg" style="align-items:center">
+<label class="fl" style="align-self:flex-start">QR Code</label>
+<div class="qr-svg-wrap" id="config-qr-wrap"></div>
+</div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-config-link')" data-i18n="btn_close">Close</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-rule">
+<div class="modal wide">
+<div class="modal-hd"><h3 id="rule-modal-title" data-i18n="add_rule">Add Rule</h3><button class="modal-x" onclick="closeModal('modal-rule')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fg"><label class="fl">Domain matchers (one per line)</label><textarea class="fi" id="rl-domain" placeholder="geosite:CN&#10;domain:example.com&#10;full:ads.example.com&#10;regexp:\.ads\."></textarea></div>
+<div class="fg"><label class="fl">IP matchers (one per line)</label><textarea class="fi" id="rl-ip" placeholder="geoip:CN&#10;192.168.0.0/16&#10;10.0.0.0/8"></textarea></div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Port (e.g. 80,443,8000-9000)</label><input class="fi" id="rl-port" placeholder="80,443"></div>
+<div class="fg"><label class="fl" data-i18n="col_protocol">Protocol</label>
+<select class="fi" id="rl-protocol">
+<option value="">Any</option>
+<option value="tcp">TCP</option>
+<option value="udp">UDP</option>
+</select>
+</div>
+</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Inbound Tag (optional)</label><input class="fi" id="rl-inbound" placeholder="ws-443"></div>
+<div class="fg"><label class="fl" data-i18n="nav_outbounds">Outbound</label><select class="fi" id="rl-outbound"></select></div>
+</div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-rule')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveRule()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-outbound">
+<div class="modal wide">
+<div class="modal-hd"><h3 id="outbound-modal-title" data-i18n="add_outbound">Add Outbound</h3><button class="modal-x" onclick="closeModal('modal-outbound')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fg"><label class="fl" data-i18n="col_tag">Tag</label><input class="fi" id="ob-tag" placeholder="relay-us"></div>
+<div class="fg"><label class="fl" data-i18n="col_type">Type</label>
+<select class="fi" id="ob-type" onchange="onOutboundTypeChange()">
+<option value="direct">Direct</option>
+<option value="block">Block</option>
+<option value="ghostnode">GhostNode</option>
+<option value="socks5">SOCKS5 Proxy</option>
+<option value="http">HTTP Proxy</option>
+</select>
+</div>
+<div id="ob-proxy-fields" style="display:none;flex-direction:column;gap:13px">
+<div class="section-divider"></div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Proxy Host</label><input class="fi" id="ob-proxy-host" placeholder="127.0.0.1"></div>
+<div class="fg"><label class="fl">Proxy Port</label><input class="fi" id="ob-proxy-port" type="number" placeholder="1080"></div>
+</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Username (optional)</label><input class="fi" id="ob-proxy-user" placeholder=""></div>
+<div class="fg"><label class="fl">Password (optional)</label><input class="fi" id="ob-proxy-pass" type="password" placeholder=""></div>
+</div>
+</div>
+<div id="ob-ghostnode-fields" style="display:none;flex-direction:column;gap:13px">
+<div class="section-divider"></div>
+<div class="fg"><label class="fl">Paste gn:// link (auto-fill fields)</label><input class="gn-parse-input" id="ob-gn-link" placeholder="gn://NANOID@host:port?transport=ws&path=/gn#name" oninput="parseGnLink()"></div>
+<div class="fg"><label class="fl">Server URL</label><input class="fi" id="ob-url" placeholder="wss://example.com"></div>
+<div class="fg"><label class="fl">NanoID</label><input class="fi mono" id="ob-nanoid" placeholder="20-char NanoID"></div>
+<div class="fi-row">
+<div class="fg"><label class="fl" data-i18n="col_transport">Transport</label>
+<select class="fi" id="ob-transport">
+<option value="ws">WebSocket</option>
+<option value="h2">HTTP/2</option>
+<option value="grpc">gRPC</option>
+<option value="hr">HTTP Request</option>
+<option value="sse">HTTP Request SSE</option>
+<option value="hrb">HTTP Request Body</option>
+</select>
+</div>
+<div class="fg"><label class="fl" data-i18n="col_path">Path</label><input class="fi" id="ob-path" placeholder="/gn" value="/gn"></div>
+</div>
+<div class="fg"><label class="fl">SNI (TLS Server Name)</label><input class="fi" id="ob-sni" placeholder="example.com"></div>
+<div class="fg"><label class="fl">Host Header (optional)</label><input class="fi" id="ob-host" placeholder="example.com"></div>
+<div class="fg-row"><label class="fl">Allow Insecure</label><button class="toggle-btn off" id="ob-insecure" onclick="toggleBtn(this)"></button></div>
+</div>
+</div>
+<div class="section-divider"></div>
+<div style="margin:8px 12px">
+<div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:8px 10px;border-radius:6px;background:var(--bg2);border:1px solid var(--border)" onclick="const _a=document.getElementById('ob-advanced');_a.style.display=_a.style.display==='none'?'flex':'none';document.getElementById('ob-adv-arrow').textContent=_a.style.display==='none'?'▶':'▼'">
+<span style="font-size:.78em;font-weight:700;letter-spacing:.07em;color:var(--text2)">ADVANCED / SOCKOPT</span>
+<span id="ob-adv-arrow" style="font-size:.8em;color:var(--text3)">▶</span>
+</div>
+<div id="ob-advanced" style="display:none;flex-direction:column;gap:13px;margin-top:10px">
+<div class="fi-row">
+<div class="fg"><label class="fl">Bind Address</label><input class="fi" id="ob-bind-address" placeholder="192.168.1.100"></div>
+<div class="fg"><label class="fl">Redirect Address</label><input class="fi" id="ob-redirect-address" placeholder="host:port"></div>
+</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Interface</label><input class="fi" id="ob-interface" placeholder="eth0"></div>
+<div class="fg"><label class="fl">Dialer Proxy</label><select class="fi" id="ob-dialer-proxy"><option value="">None</option></select></div>
+</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">SO_MARK</label><input class="fi" id="ob-mark" type="number" placeholder="0" min="0"></div>
+<div class="fg"><label class="fl">TCP Congestion</label><input class="fi" id="ob-tcp-congestion" placeholder="bbr"></div>
+</div>
+<div class="fg-row"><label class="fl">TCP NoDelay</label><button class="toggle-btn off" id="ob-tcp-nodelay" onclick="toggleBtn(this)"></button></div>
+<div class="fg-row"><label class="fl">TCP Keep Alive</label><button class="toggle-btn off" id="ob-tcp-keepalive" onclick="toggleBtn(this)"></button></div>
+<div class="fg-row"><label class="fl">TCP Fast Open</label><button class="toggle-btn off" id="ob-tcp-fastopen" onclick="toggleBtn(this)"></button></div>
+</div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-outbound')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveOutbound()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-xray-inbound">
+<div class="modal">
+<div class="modal-hd"><h3 id="xray-inbound-modal-title">Add Xray Inbound</h3><button class="modal-x" onclick="closeModal('modal-xray-inbound')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fi-row">
+<div class="fg"><label class="fl" data-i18n="col_tag">Tag</label><input class="fi" id="xi-tag" placeholder="vless-443"></div>
+<div class="fg"><label class="fl" data-i18n="col_port">Port</label><input class="fi" id="xi-port" type="number" placeholder="443"></div>
+<div class="fg"><label class="fl" data-i18n="col_protocol">Protocol</label>
+<select class="fi" id="xi-protocol">
+<option value="vless">VLESS</option>
+<option value="vmess">VMess</option>
+<option value="trojan">Trojan</option>
+<option value="shadowsocks">Shadowsocks</option>
+<option value="socks">SOCKS</option>
+<option value="http">HTTP</option>
+</select>
+</div>
+</div>
+<div class="fg"><label class="fl">Settings (JSON)</label><textarea class="fi" id="xi-settings" rows="4" style="font-family:monospace;font-size:.8em">{}</textarea></div>
+<div class="fg"><label class="fl">Stream Settings (JSON)</label><textarea class="fi" id="xi-stream" rows="4" style="font-family:monospace;font-size:.8em">{}</textarea></div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-xray-inbound')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveXrayInbound()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-xray-client">
+<div class="modal">
+<div class="modal-hd"><h3 id="xray-client-modal-title">Add Xray Client</h3><button class="modal-x" onclick="closeModal('modal-xray-client')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fg"><label class="fl">Name</label><input class="fi" id="xc-name" placeholder="User"></div>
+<div class="fg"><label class="fl">Inbound</label><select class="fi" id="xc-inbound"></select></div>
+<div id="xc-uuid-row" style="display:none"><div class="fg"><label class="fl">UUID</label><input class="fi" id="xc-uuid" readonly style="font-family:monospace;font-size:.82em"></div></div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Traffic Limit (GB, 0=unlimited)</label><input class="fi" id="xc-traffic" type="number" step="0.1" value="0"></div>
+<div class="fg"><label class="fl">Expire Date</label><input class="fi" id="xc-expire" type="date"></div>
+</div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-xray-client')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveXrayClient()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<div class="overlay" id="modal-xray-outbound">
+<div class="modal">
+<div class="modal-hd"><h3 id="xray-outbound-modal-title">Add Xray Outbound</h3><button class="modal-x" onclick="closeModal('modal-xray-outbound')">&#x2715;</button></div>
+<div class="modal-bd">
+<div class="fi-row">
+<div class="fg"><label class="fl" data-i18n="col_tag">Tag</label><input class="fi" id="xo-tag" placeholder="my-vless"></div>
+<div class="fg"><label class="fl" data-i18n="col_protocol">Protocol</label>
+<select class="fi" id="xo-protocol">
+<option value="vmess">VMess</option>
+<option value="vless">VLESS</option>
+<option value="trojan">Trojan</option>
+<option value="shadowsocks">Shadowsocks</option>
+<option value="socks">SOCKS</option>
+<option value="http">HTTP</option>
+<option value="freedom">Freedom (direct)</option>
+<option value="blackhole">Blackhole (block)</option>
+</select>
+</div>
+</div>
+<div class="fg"><label class="fl">Settings (JSON)</label><textarea class="fi" id="xo-settings" rows="6" style="font-family:monospace;font-size:.8em">{}</textarea></div>
+<div class="fg"><label class="fl">Stream Settings (JSON)</label><textarea class="fi" id="xo-stream" rows="4" style="font-family:monospace;font-size:.8em">{}</textarea></div>
+</div>
+<div class="modal-ft">
+<button class="btn btn-ghost" onclick="closeModal('modal-xray-outbound')" data-i18n="btn_cancel">Cancel</button>
+<button class="btn btn-accent" onclick="saveXrayOutbound()" data-i18n="btn_save">Save</button>
+</div>
+</div>
+</div>
+
+<script>
+const PREFIX='{{prefix}}';
+let _inbounds=[],_clients=[],_rules=[],_outbounds=[];
+let _xrayInbounds=[],_xrayClients=[],_xrayOutbounds=[],_xrayTab="inbounds";
+let _editInboundId=null,_editClientId=null,_editRuleId=null,_editOutboundId=null;
+let _editXrayInboundId=null,_editXrayClientId=null,_editXrayOutboundId=null;
+let _statsInterval=null;
+let _selInbounds=new Set(),_selClients=new Set();
+let _dragRuleId=null,_dragObId=null;
+let _lang=localStorage.getItem('gn-lang')||'en';
+
+const T={
+en:{
+nav_overview:"Overview",nav_inbounds:"Inbounds",nav_clients:"Clients",nav_routing:"Routing",
+nav_outbounds:"Outbounds",nav_xray:"Xray",nav_logs:"Logs",nav_settings:"Settings",nav_refresh:"Refresh",
+add_inbound:"+ Add Inbound",add_client:"+ Add Client",add_rule:"+ Add Rule",add_outbound:"+ Add Outbound",
+btn_save:"Save",btn_cancel:"Cancel",btn_close:"Close",btn_copy_link:"Copy Link",btn_refresh:"Refresh",
+bulk_enable:"Enable",bulk_disable:"Disable",bulk_delete:"Delete Selected",
+col_tag:"Tag",col_port:"Port",col_transport:"Transport",col_path:"Path",col_status:"Status",
+col_actions:"Actions",col_name:"Name",col_traffic:"Traffic",col_expire:"Expire",
+col_order:"Order",col_domain:"Domain",col_protocol:"Protocol",col_type:"Type",col_config:"Config",
+ov_server_status:"Server Status",ov_core:"Core",ov_uptime:"Uptime",ov_panel_path:"Panel Path",
+ov_network:"Network",ov_upload:"Upload",ov_download:"Download",loading:"Loading..."
+},
+fa:{
+nav_overview:"خلاصه",nav_inbounds:"ورودی‌ها",nav_clients:"کاربران",nav_routing:"مسیریابی",
+nav_outbounds:"خروجی‌ها",nav_xray:"Xray",nav_logs:"گزارش‌ها",nav_settings:"تنظیمات",nav_refresh:"بازیابی",
+add_inbound:"+ افزودن ورودی",add_client:"+ افزودن کاربر",add_rule:"+ افزودن قانون",add_outbound:"+ افزودن خروجی",
+btn_save:"ذخیره",btn_cancel:"لغو",btn_close:"بستن",btn_copy_link:"کپی لینک",btn_refresh:"بارگذاری مجدد",
+bulk_enable:"فعال",bulk_disable:"غیرفعال",bulk_delete:"حذف انتخاب‌شده",
+col_tag:"برچسب",col_port:"پورت",col_transport:"انتقال",col_path:"مسیر",col_status:"وضعیت",
+col_actions:"عملیات",col_name:"نام",col_traffic:"ترافیک",col_expire:"انقضا",
+col_order:"ترتیب",col_domain:"دامنه",col_protocol:"پروتکل",col_type:"نوع",col_config:"تنظیمات",
+ov_server_status:"وضعیت سرور",ov_core:"هسته",ov_uptime:"آپتایم",ov_panel_path:"مسیر پنل",
+ov_network:"شبکه",ov_upload:"آپلود",ov_download:"دانلود",loading:"در حال بارگذاری..."
+}
+};
+
+const api=async(method,path,body)=>{
+const opts={method,headers:{"Content-Type":"application/json"}};
+if(body!==undefined)opts.body=JSON.stringify(body);
+const r=await fetch(PREFIX+path,opts);
+return r.json();
+};
+
+function fmtBytes(b){
+if(!b||b<=0)return "0 B";
+if(b<1024)return b+" B";
+if(b<1048576)return (b/1024).toFixed(1)+" KB";
+if(b<1073741824)return (b/1048576).toFixed(2)+" MB";
+return (b/1073741824).toFixed(2)+" GB";
+}
+function fmtSpeed(b){return fmtBytes(b)+"/s"}
+
+function setGauge(id,pct,txt){
+const circ=289,offset=circ-(circ*Math.min(pct,100)/100);
+const el=document.getElementById(id);
+if(el){el.style.strokeDashoffset=offset;el.style.stroke=pct>85?"var(--danger)":pct>60?"var(--warning)":"var(--accent)";}
+const tel=document.getElementById(id+"-txt");
+if(tel)tel.textContent=txt||Math.round(pct)+"%";
+}
+
+function toggleBtn(el){el.classList.toggle("on");el.classList.toggle("off")}
+function isBtnOn(el){return el.classList.contains("on")}
+
+function toggleTheme(){
+const h=document.documentElement;
+const t=h.getAttribute("data-theme")==="light"?"dark":"light";
+h.setAttribute("data-theme",t);
+localStorage.setItem("gn-theme",t);
+}
+
+function toggleLang(){
+_lang=_lang==="en"?"fa":"en";
+localStorage.setItem("gn-lang",_lang);
+applyLang();
+}
+
+function applyLang(){
+document.body.classList.toggle("fa",_lang==="fa");
+document.getElementById("lang-label").textContent=_lang==="fa"?"FA":"EN";
+document.querySelectorAll("[data-i18n]").forEach(el=>{
+const k=el.getAttribute("data-i18n");
+if(T[_lang]&&T[_lang][k])el.textContent=T[_lang][k];
+});
+}
+
+function switchPage(name,btn){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
+document.getElementById("page-"+name).classList.add("active");
+if(btn)btn.classList.add("active");
+closeSidebar();
+if(name==="overview"){startStatsPolling()}else{stopStatsPolling()}
+if(name!=="logs"&&_liveLogging)toggleLiveLog();
+if(name==="inbounds")loadInbounds();
+if(name==="clients")loadClients();
+if(name==="routing")loadRouting();
+if(name==="outbounds")loadOutbounds();
+if(name==="logs")loadLogs();
+if(name==="settings")loadSettings();
+if(name==="xray")loadXray();
+}
+
+function refreshPage(){location.reload()}
+
+function toggleSidebar(){
+document.getElementById("sidebar").classList.toggle("open");
+document.getElementById("sb-overlay").classList.toggle("open");
+}
+function closeSidebar(){
+document.getElementById("sidebar").classList.remove("open");
+document.getElementById("sb-overlay").classList.remove("open");
+}
+
+function openModal(id){document.getElementById(id).classList.add("open")}
+function closeModal(id){document.getElementById(id).classList.remove("open")}
+
+function showAlert(page,msg,type="ok"){
+const el=document.getElementById("alert-"+page);
+if(!el)return;
+el.textContent=msg;
+el.className="alert show "+(type==="ok"?"ok":"err");
+setTimeout(()=>el.classList.remove("show"),3000);
+}
+
+// ---- STATS ----
+async function loadStats(){
+try{
+const d=await api("GET","/api/stats");
+setGauge("g-cpu",d.cpu_percent,d.cpu_percent+"%");
+setGauge("g-ram",d.ram_percent,d.ram_percent+"%");
+setGauge("g-swap",d.swap_percent,d.swap_percent+"%");
+setGauge("g-disk",d.disk_percent,d.disk_percent+"%");
+document.getElementById("g-cpu-cores").textContent=d.cpu_count+" core"+(d.cpu_count>1?"s":"");
+document.getElementById("g-ram-info").textContent=fmtBytes(d.ram_used)+" / "+fmtBytes(d.ram_total);
+document.getElementById("g-swap-info").textContent=fmtBytes(d.swap_used)+" / "+fmtBytes(d.swap_total);
+document.getElementById("g-disk-info").textContent=fmtBytes(d.disk_used)+" / "+fmtBytes(d.disk_total);
+document.getElementById("ov-version").textContent=d.version||"dev";
+document.getElementById("ov-uptime").textContent=d.uptime||"-";
+document.getElementById("ov-path").textContent="/"+PREFIX.replace(/^\//,"");
+document.getElementById("sb-ver").textContent=d.version||"dev";
+document.getElementById("ov-up").textContent=fmtSpeed(d.net_sent||0);
+document.getElementById("ov-dn").textContent=fmtSpeed(d.net_recv||0);
+const _lc=(v)=>{const e=document.createElement("span");e.textContent=v||0;e.style.color=v>d.cpu_count*0.85?"var(--danger)":v>d.cpu_count*0.6?"var(--warning)":"var(--accent)";return e;};
+["ov-l1","ov-l5","ov-l15"].forEach((id,i)=>{const el=document.getElementById(id);el.innerHTML="";el.appendChild(_lc([d.load_1,d.load_5,d.load_15][i]));});
+}catch(e){}
+}
+function startStatsPolling(){loadStats();_statsInterval=setInterval(loadStats,3000)}
+function stopStatsPolling(){if(_statsInterval){clearInterval(_statsInterval);_statsInterval=null}}
+
+// ---- INBOUNDS ----
+const transportBadge=t=>{
+const m={websocket:"badge-blue",http2:"badge-accent",grpc:"badge-purple","http-request":"badge-warning","http-request-sse":"badge-warning","http-request-body":"badge-warning"};
+return `<span class="badge ${m[t]||"badge-muted"}">${t}</span>`;
+};
+
+async function loadInbounds(){
+_inbounds=await api("GET","/api/inbounds");
+renderInbounds();
+}
+
+function renderInbounds(){
+const tb=document.getElementById("inbounds-tbody");
+if(!_inbounds.length){tb.innerHTML=`<tr><td colspan="8" class="empty-state"><p>No inbounds configured</p></td></tr>`;return}
+tb.innerHTML=_inbounds.map(i=>`
+<tr>
+<td><div class="cb-wrap"><input type="checkbox" onchange="toggleSelInbound(${i.id},this)" ${_selInbounds.has(i.id)?"checked":""}></div></td>
+<td><span class="mono" style="color:var(--text)">${esc(i.tag)}</span></td>
+<td><span class="mono" style="color:var(--accent)">${i.port}</span></td>
+<td>${transportBadge(i.transport)}</td>
+<td><span class="mono" style="color:var(--text2)">${esc(i.path||"/gn")}</span></td>
+<td>${i.ssl_cert?"<span class=\"badge badge-accent\">TLS</span>":"<span class=\"badge badge-muted\">None</span>"}</td>
+<td><button class="toggle-btn ${i.enabled?"on":"off"}" onclick="toggleInbound(${i.id},this)"></button></td>
+<td class="tbl-actions"><div class="tbl-actions-inner">
+<button class="btn btn-icon btn-sm" onclick="openInboundModal(${i.id})" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+<button class="btn btn-danger btn-sm" onclick="deleteInbound(${i.id})" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+</div></td>
+</tr>`).join("");
+updateBulkBarInbounds();
+}
+
+function toggleSelInbound(id,cb){
+if(cb.checked)_selInbounds.add(id);else _selInbounds.delete(id);
+updateBulkBarInbounds();
+}
+function selectAllInbounds(cb){
+_inbounds.forEach(i=>cb.checked?_selInbounds.add(i.id):_selInbounds.delete(i.id));
+document.querySelectorAll("#inbounds-tbody input[type=checkbox]").forEach(c=>c.checked=cb.checked);
+updateBulkBarInbounds();
+}
+function clearSelInbounds(){
+_selInbounds.clear();
+document.querySelectorAll("#inbounds-tbody input[type=checkbox]").forEach(c=>c.checked=false);
+const allCb=document.getElementById("ib-check-all");
+if(allCb)allCb.checked=false;
+updateBulkBarInbounds();
+}
+function updateBulkBarInbounds(){
+const bar=document.getElementById("bulk-bar-inbounds");
+const info=document.getElementById("bulk-info-inbounds");
+if(_selInbounds.size>0){bar.classList.add("show");info.textContent=_selInbounds.size+" selected"}
+else bar.classList.remove("show");
+}
+async function bulkInbounds(action){
+if(!_selInbounds.size)return;
+if(action==="delete"&&!confirm(`Delete ${_selInbounds.size} inbound(s)?`))return;
+await api("POST","/api/inbounds/bulk",{action,ids:[..._selInbounds]});
+_selInbounds.clear();
+await loadInbounds();
+showAlert("inbounds",`Bulk ${action} done`);
+}
+
+async function toggleInbound(id,btn){
+const inb=_inbounds.find(i=>i.id===id);
+if(!inb)return;
+const enabled=isBtnOn(btn)?0:1;
+inb.enabled=enabled;
+toggleBtn(btn);
+api("PUT",`/api/inbounds/${id}`,{enabled});
+}
+function openInboundModal(id){
+_editInboundId=id||null;
+document.getElementById("inbound-modal-title").textContent=id?(T[_lang].col_tag?" ":"Edit Inbound"):"Add Inbound";
+document.getElementById("inbound-modal-title").setAttribute("data-i18n",id?"":"add_inbound");
+if(id){
+const i=_inbounds.find(x=>x.id===id);
+if(i){
+document.getElementById("ib-tag").value=i.tag;
+document.getElementById("ib-port").value=i.port;
+document.getElementById("ib-listen-ip").value=i.listen_ip||"0.0.0.0";
+document.getElementById("ib-transport").value=i.transport;
+document.getElementById("ib-path").value=i.path||"/gn";
+document.getElementById("ib-cert").value=i.ssl_cert||"";
+document.getElementById("ib-key").value=i.ssl_key||"";
+document.getElementById("ib-sni").value=i.sni||"";
+document.getElementById("ib-host").value=i.host||"";
+document.getElementById("ib-ext-host").value=i.ext_host||"";
+document.getElementById("ib-ext-port").value=i.ext_port||"";
+document.getElementById("ib-ext-tls").className="toggle-btn "+(i.ext_tls?"on":"off");
+document.getElementById("ib-enabled").className="toggle-btn "+(i.enabled?"on":"off");
+}}else{
+document.getElementById("ib-tag").value="";
+document.getElementById("ib-port").value="";
+document.getElementById("ib-listen-ip").value="0.0.0.0";
+document.getElementById("ib-transport").value="websocket";
+document.getElementById("ib-path").value="/gn";
+document.getElementById("ib-cert").value="";
+document.getElementById("ib-key").value="";
+document.getElementById("ib-sni").value="";
+document.getElementById("ib-host").value="";
+document.getElementById("ib-ext-host").value="";
+document.getElementById("ib-ext-port").value="";
+document.getElementById("ib-ext-tls").className="toggle-btn off";
+document.getElementById("ib-enabled").className="toggle-btn on";
+}
+openModal("modal-inbound");
+}
+async function saveInbound(){
+const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0"};
+try{
+if(_editInboundId)await api("PUT",`/api/inbounds/${_editInboundId}`,body);
+else await api("POST","/api/inbounds",body);
+closeModal("modal-inbound");
+await loadInbounds();
+showAlert("inbounds",_editInboundId?"Inbound updated":"Inbound created");
+}catch(e){showAlert("inbounds","Error: "+e.message,"err")}
+}
+async function deleteInbound(id){
+if(!confirm("Delete this inbound?"))return;
+await api("DELETE",`/api/inbounds/${id}`);
+await loadInbounds();
+showAlert("inbounds","Inbound deleted");
+}
+
+// ---- CLIENTS ----
+async function loadClients(){
+_clients=await api("GET","/api/clients");
+if(!_inbounds.length)_inbounds=await api("GET","/api/inbounds");
+renderClients();
+}
+function renderClients(){
+const q=document.getElementById("client-search").value.toLowerCase();
+const tb=document.getElementById("clients-tbody");
+const list=_clients.filter(c=>!q||c.name.toLowerCase().includes(q)||c.nanoid.toLowerCase().includes(q)||c.inbound_tag.toLowerCase().includes(q));
+if(!list.length){tb.innerHTML=`<tr><td colspan="8" class="empty-state"><p>No clients found</p></td></tr>`;return}
+tb.innerHTML=list.map(c=>{
+const used=c.upload+c.download;
+const pct=c.traffic_limit>0?Math.min(100,used/c.traffic_limit*100):0;
+const pfill=c.traffic_limit>0?`<div class="prog-fill" style="width:${pct}%;background:${pct>90?"var(--danger)":pct>70?"var(--warning)":"var(--accent)"}"></div>`:"";
+const traffic=c.traffic_limit>0?`<div class="prog-wrap"><div class="prog-bar">${pfill}</div><span class="prog-txt">${fmtBytes(used)}/${fmtBytes(c.traffic_limit)}</span></div>`:`<span class="prog-txt">&#8734; (${fmtBytes(used)})</span>`;
+const now=new Date();
+let expireHtml="<span style=\"color:var(--text2)\">Never</span>";
+if(c.expire_date){
+const exp=new Date(c.expire_date);
+const diff=exp-now;
+if(diff<0)expireHtml=`<span style="color:var(--danger)">${fmtDate(c.expire_date)} (exp)</span>`;
+else if(diff<7*86400000)expireHtml=`<span style="color:var(--warning)">${fmtDate(c.expire_date)}</span>`;
+else expireHtml=`<span>${fmtDate(c.expire_date)}</span>`;
+}
+return `<tr>
+<td><div class="cb-wrap"><input type="checkbox" onchange="toggleSelClient(${c.id},this)" ${_selClients.has(c.id)?"checked":""}></div></td>
+<td style="font-weight:600;color:var(--text)">${esc(c.name)}</td>
+<td><span class="nanoid-cell" title="${esc(c.nanoid)}">${c.nanoid.substring(0,12)}...</span></td>
+<td><span class="badge badge-blue">${esc(c.inbound_tag)}</span></td>
+<td>${traffic}</td>
+<td>${expireHtml}</td>
+<td><button class="toggle-btn ${c.enabled?"on":"off"}" onclick="toggleClient(${c.id},this)"></button></td>
+<td class="tbl-actions"><div class="tbl-actions-inner">
+<button class="btn btn-icon btn-sm" onclick="showConfigLink(${c.id})" title="Config Link"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg></button>
+<button class="btn btn-icon btn-sm" onclick="resetClientTraffic(${c.id})" title="Reset Traffic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg></button>
+<button class="btn btn-icon btn-sm" onclick="openClientModal(${c.id})" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+<button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+</div></td></tr>`;
+}).join("");
+updateBulkBarClients();
+}
+
+function toggleSelClient(id,cb){
+if(cb.checked)_selClients.add(id);else _selClients.delete(id);
+updateBulkBarClients();
+}
+function selectAllClients(cb){
+const q=document.getElementById("client-search").value.toLowerCase();
+const list=_clients.filter(c=>!q||c.name.toLowerCase().includes(q)||c.nanoid.toLowerCase().includes(q));
+list.forEach(c=>cb.checked?_selClients.add(c.id):_selClients.delete(c.id));
+document.querySelectorAll("#clients-tbody input[type=checkbox]").forEach(c=>c.checked=cb.checked);
+updateBulkBarClients();
+}
+function clearSelClients(){
+_selClients.clear();
+document.querySelectorAll("#clients-tbody input[type=checkbox]").forEach(c=>c.checked=false);
+const allCb=document.getElementById("cl-check-all");
+if(allCb)allCb.checked=false;
+updateBulkBarClients();
+}
+function updateBulkBarClients(){
+const bar=document.getElementById("bulk-bar-clients");
+const info=document.getElementById("bulk-info-clients");
+if(_selClients.size>0){bar.classList.add("show");info.textContent=_selClients.size+" selected"}
+else bar.classList.remove("show");
+}
+async function bulkClients(action){
+if(!_selClients.size)return;
+if(action==="delete"&&!confirm(`Delete ${_selClients.size} client(s)?`))return;
+await api("POST","/api/clients/bulk",{action,ids:[..._selClients]});
+_selClients.clear();
+await loadClients();
+showAlert("clients",`Bulk ${action} done`);
+}
+
+function fmtDate(s){if(!s)return"";try{return new Date(s).toLocaleDateString()}catch(e){return s}}
+async function toggleClient(id,btn){
+const c=_clients.find(x=>x.id===id);
+if(!c)return;
+c.enabled=c.enabled?0:1;
+if(btn)toggleBtn(btn);
+api("POST",`/api/clients/${id}/toggle`);
+}
+async function resetClientTraffic(id){
+if(!confirm("Reset traffic for this client?"))return;
+await api("POST",`/api/clients/${id}/reset`);
+await loadClients();
+showAlert("clients","Traffic reset");
+}
+async function showConfigLink(id){
+try{
+const d=await api("POST",`/api/clients/${id}/config-link`);
+document.getElementById("config-link-text").textContent=d.link||"";
+document.getElementById("config-qr-wrap").innerHTML=d.qr_svg||"<span style=\"color:var(--text2);font-size:.82em\">No QR available</span>";
+openModal("modal-config-link");
+}catch(e){showAlert("clients","Error loading config link","err")}
+}
+function copyConfigLink(){
+const t=document.getElementById("config-link-text").textContent;
+navigator.clipboard.writeText(t).then(()=>showAlert("clients","Link copied!"));
+}
+function openClientModal(id){
+_editClientId=id||null;
+document.getElementById("client-modal-title").textContent=id?"Edit Client":"Add Client";
+const sel=document.getElementById("cl-inbound");
+sel.innerHTML=_inbounds.map(i=>`<option value="${esc(i.tag)}">${esc(i.tag)}</option>`).join("");
+if(id){
+const c=_clients.find(x=>x.id===id);
+if(c){
+document.getElementById("cl-name").value=c.name;
+sel.value=c.inbound_tag;
+document.getElementById("cl-limit").value=c.traffic_limit?(c.traffic_limit/1073741824).toFixed(2):"0";
+document.getElementById("cl-expire").value=c.expire_date?c.expire_date.split("T")[0]:"";
+}}else{
+document.getElementById("cl-name").value="";
+document.getElementById("cl-limit").value="0";
+document.getElementById("cl-expire").value="";
+}
+openModal("modal-client");
+}
+async function saveClient(){
+const body={name:v("cl-name"),inbound_tag:v("cl-inbound"),traffic_limit_gb:parseFloat(v("cl-limit"))||0,expire_date:v("cl-expire")};
+try{
+if(_editClientId)await api("PUT",`/api/clients/${_editClientId}`,body);
+else await api("POST","/api/clients",body);
+closeModal("modal-client");
+await loadClients();
+showAlert("clients",_editClientId?"Client updated":"Client created");
+}catch(e){showAlert("clients","Error: "+e.message,"err")}
+}
+async function deleteClient(id){
+if(!confirm("Delete this client?"))return;
+await api("DELETE",`/api/clients/${id}`);
+await loadClients();
+showAlert("clients","Client deleted");
+}
+
+// ---- ROUTING ----
+async function loadRouting(){
+_rules=await api("GET","/api/routing");
+if(!_outbounds.length)_outbounds=await api("GET","/api/outbounds");
+renderRouting();
+}
+const outboundBadge=tag=>{
+const ob=_outbounds.find(o=>o.tag===tag);
+const cls=ob?{direct:"badge-accent",block:"badge-danger",ghostnode:"badge-blue"}[ob.type]||"badge-muted":"badge-muted";
+return `<span class="badge ${cls}">${esc(tag)}</span>`;
+};
+
+function renderRouting(){
+const tb=document.getElementById("routing-tbody");
+if(!_rules.length){tb.innerHTML=`<tr><td colspan="8" class="empty-state"><p>No routing rules</p></td></tr>`;return}
+tb.innerHTML=_rules.map((r,i)=>{
+const domainStr=Array.isArray(r.domain)?r.domain.join(", "):(r.domain||"");
+const ipStr=Array.isArray(r.ip)?r.ip.join(", "):(r.ip||"");
+return `<tr draggable="true" id="rule-row-${r.id}" style="${r.enabled===0?"opacity:.4":""}" ondragstart="onRuleDragStart(event,${r.id})" ondragover="onRuleDragOver(event,${r.id})" ondrop="onRuleDrop(event,${r.id})" ondragend="onRuleDragEnd(event)">
+<td>
+<div style="display:flex;align-items:center;gap:4px">
+<span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+<div class="mob-menu-wrap" id="rule-mob-${r.id}">
+<button class="btn btn-icon btn-sm" style="padding:3px 6px" onclick="toggleMobMenu('rule-mob-${r.id}',event)" title="Move">&#8942;</button>
+<div class="mob-dropdown">
+<button onclick="moveRuleStep(${r.id},-1,event)" ${i===0?"disabled":""}>&#8593; Up</button>
+<button onclick="moveRuleStep(${r.id},1,event)" ${i===_rules.length-1?"disabled":""}>&#8595; Down</button>
+</div>
+</div>
+</div>
+</td>
+<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8em" title="${esc(domainStr)}">${esc(domainStr)||"<span style=\"color:var(--text3)\">-</span>"}</td>
+<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8em" title="${esc(ipStr)}">${esc(ipStr)||"<span style=\"color:var(--text3)\">-</span>"}</td>
+<td><span class="mono">${esc(r.port)||"-"}</span></td>
+<td>${r.protocol?`<span class="badge badge-muted">${r.protocol}</span>`:"<span style=\"color:var(--text3)\">any</span>"}</td>
+<td>${r.inbound_tag?`<span class="badge badge-blue">${esc(r.inbound_tag)}</span>`:"<span style=\"color:var(--text3)\">-</span>"}</td>
+<td>${outboundBadge(r.outbound_tag)}</td>
+<td class="tbl-actions"><div class="tbl-actions-inner">
+<button class="btn btn-icon btn-sm" onclick="toggleRule(${r.id})" title="${r.enabled===0?"Enable":"Disable"}" style="color:${r.enabled===0?"var(--text3)":"var(--accent)"}">${r.enabled===0?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>`}</button>
+<button class="btn btn-icon btn-sm" onclick="openRuleModal(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+<button class="btn btn-danger btn-sm" onclick="deleteRule(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+</div></td></tr>`;
+}).join("");
+}
+
+function onRuleDragStart(e,id){
+_dragRuleId=id;
+e.currentTarget.classList.add("dragging");
+e.dataTransfer.effectAllowed="move";
+}
+function onRuleDragOver(e,id){
+e.preventDefault();
+e.dataTransfer.dropEffect="move";
+document.querySelectorAll("#routing-tbody tr").forEach(r=>r.classList.remove("drag-over-top"));
+if(_dragRuleId!==id)e.currentTarget.classList.add("drag-over-top");
+}
+function onRuleDrop(e,id){
+e.preventDefault();
+if(_dragRuleId===null||_dragRuleId===id)return;
+const fromIdx=_rules.findIndex(r=>r.id===_dragRuleId);
+const toIdx=_rules.findIndex(r=>r.id===id);
+if(fromIdx<0||toIdx<0)return;
+const item=_rules.splice(fromIdx,1)[0];
+_rules.splice(toIdx,0,item);
+const order=_rules.map((r,i)=>({id:r.id,ord:i}));
+api("POST","/api/routing/reorder",order);
+renderRouting();
+}
+function onRuleDragEnd(e){
+_dragRuleId=null;
+document.querySelectorAll("#routing-tbody tr").forEach(r=>{r.classList.remove("dragging");r.classList.remove("drag-over-top")});
+}
+async function moveRuleStep(id,dir,e){
+if(e)e.stopPropagation();
+const idx=_rules.findIndex(r=>r.id===id);
+if(idx<0)return;
+const newIdx=idx+dir;
+if(newIdx<0||newIdx>=_rules.length)return;
+[_rules[idx],_rules[newIdx]]=[_rules[newIdx],_rules[idx]];
+const order=_rules.map((r,i)=>({id:r.id,ord:i}));
+await api("POST","/api/routing/reorder",order);
+await loadRouting();
+}
+
+function openRuleModal(id){
+_editRuleId=id||null;
+document.getElementById("rule-modal-title").textContent=id?"Edit Rule":"Add Rule";
+const sel=document.getElementById("rl-outbound");
+sel.innerHTML=_outbounds.map(o=>`<option value="${esc(o.tag)}">${esc(o.tag)}</option>`).join("");
+if(id){
+const r=_rules.find(x=>x.id===id);
+if(r){
+const dom=Array.isArray(r.domain)?r.domain.join("\n"):(r.domain||"");
+const ip=Array.isArray(r.ip)?r.ip.join("\n"):(r.ip||"");
+document.getElementById("rl-domain").value=dom;
+document.getElementById("rl-ip").value=ip;
+document.getElementById("rl-port").value=r.port||"";
+document.getElementById("rl-protocol").value=r.protocol||"";
+document.getElementById("rl-inbound").value=r.inbound_tag||"";
+sel.value=r.outbound_tag;
+}}else{
+document.getElementById("rl-domain").value="";
+document.getElementById("rl-ip").value="";
+document.getElementById("rl-port").value="";
+document.getElementById("rl-protocol").value="";
+document.getElementById("rl-inbound").value="";
+}
+openModal("modal-rule");
+}
+async function saveRule(){
+const domTxt=v("rl-domain").trim();
+const ipTxt=v("rl-ip").trim();
+const body={
+domain:domTxt?domTxt.split("\n").map(s=>s.trim()).filter(Boolean):[],
+ip:ipTxt?ipTxt.split("\n").map(s=>s.trim()).filter(Boolean):[],
+port:v("rl-port"),protocol:v("rl-protocol"),inbound_tag:v("rl-inbound"),
+outbound_tag:v("rl-outbound"),ord:_editRuleId?undefined:_rules.length
+};
+try{
+if(_editRuleId)await api("PUT",`/api/routing/${_editRuleId}`,body);
+else await api("POST","/api/routing",body);
+closeModal("modal-rule");
+await loadRouting();
+showAlert("routing",_editRuleId?"Rule updated":"Rule created");
+}catch(e){showAlert("routing","Error: "+e.message,"err")}
+}
+async function toggleRule(id){
+await api("POST",`/api/routing/${id}/toggle`);
+await loadRouting();
+}
+async function deleteRule(id){
+if(!confirm("Delete this rule?"))return;
+await api("DELETE",`/api/routing/${id}`);
+await loadRouting();
+showAlert("routing","Rule deleted");
+}
+
+// ---- OUTBOUNDS ----
+async function loadOutbounds(){
+_outbounds=await api("GET","/api/outbounds");
+renderOutbounds();
+}
+
+function renderOutbounds(){
+const tb=document.getElementById("outbounds-tbody");
+if(!_outbounds.length){tb.innerHTML=`<tr><td colspan="5" class="empty-state"><p>No outbounds configured</p></td></tr>`;return}
+tb.innerHTML=_outbounds.map((o,i)=>{
+const typeBadge={direct:"badge-accent",block:"badge-danger",ghostnode:"badge-blue",socks5:"badge-purple",http:"badge-purple"}[o.type]||"badge-muted";
+let cfg="";
+try{const c=typeof o.config==="string"?JSON.parse(o.config):o.config;if(o.type==="ghostnode")cfg=c.url||""}catch(e){}
+const isSystem=o.tag==="direct"||o.tag==="block";
+return `<tr draggable="${!isSystem}" id="ob-row-${o.id}"
+${!isSystem?`ondragstart="onObDragStart(event,${o.id})" ondragover="onObDragOver(event,${o.id})" ondrop="onObDrop(event,${o.id})" ondragend="onObDragEnd(event)"`:""}>
+<td>
+${!isSystem?`<div style="display:flex;align-items:center;gap:4px">
+<span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+<div class="mob-menu-wrap" id="ob-mob-${o.id}">
+<button class="btn btn-icon btn-sm" style="padding:3px 6px" onclick="toggleMobMenu('ob-mob-${o.id}',event)" title="Move">&#8942;</button>
+<div class="mob-dropdown">
+<button onclick="moveObStep(${o.id},-1,event)" ${i===0?"disabled":""}>&#8593; Up</button>
+<button onclick="moveObStep(${o.id},1,event)" ${i===_outbounds.length-1?"disabled":""}>&#8595; Down</button>
+</div>
+</div>
+</div>`:""}
+</td>
+<td style="font-weight:600;color:var(--text)">${esc(o.tag)}</td>
+<td><span class="badge ${typeBadge}">${o.type}</span></td>
+<td><span class="mono" style="color:var(--text2);font-size:.78em">${esc(cfg)||"<span style=\"color:var(--text3)\">-</span>"}</span></td>
+<td class="tbl-actions">${!isSystem?`<div class="tbl-actions-inner">
+<button class="btn btn-icon btn-sm" onclick="openOutboundModal(${o.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+<button class="btn btn-danger btn-sm" onclick="deleteOutbound(${o.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+</div>`:"<span style=\"color:var(--text3);font-size:.78em\">system</span>"}</td></tr>`;
+}).join("");
+}
+
+function onObDragStart(e,id){
+_dragObId=id;
+e.currentTarget.classList.add("dragging");
+e.dataTransfer.effectAllowed="move";
+}
+function onObDragOver(e,id){
+e.preventDefault();
+e.dataTransfer.dropEffect="move";
+document.querySelectorAll("#outbounds-tbody tr").forEach(r=>r.classList.remove("drag-over-top"));
+if(_dragObId!==id)e.currentTarget.classList.add("drag-over-top");
+}
+function onObDrop(e,id){
+e.preventDefault();
+if(_dragObId===null||_dragObId===id)return;
+const fromIdx=_outbounds.findIndex(o=>o.id===_dragObId);
+const toIdx=_outbounds.findIndex(o=>o.id===id);
+if(fromIdx<0||toIdx<0)return;
+const item=_outbounds.splice(fromIdx,1)[0];
+_outbounds.splice(toIdx,0,item);
+const order=_outbounds.map((o,i)=>({id:o.id,ord:i}));
+api("POST","/api/outbounds/reorder",order);
+renderOutbounds();
+}
+function onObDragEnd(e){
+_dragObId=null;
+document.querySelectorAll("#outbounds-tbody tr").forEach(r=>{r.classList.remove("dragging");r.classList.remove("drag-over-top")});
+}
+async function moveObStep(id,dir,e){
+if(e)e.stopPropagation();
+const idx=_outbounds.findIndex(o=>o.id===id);
+if(idx<0)return;
+const newIdx=idx+dir;
+if(newIdx<0||newIdx>=_outbounds.length)return;
+[_outbounds[idx],_outbounds[newIdx]]=[_outbounds[newIdx],_outbounds[idx]];
+const order=_outbounds.map((o,i)=>({id:o.id,ord:i}));
+await api("POST","/api/outbounds/reorder",order);
+await loadOutbounds();
+}
+
+function toggleMobMenu(menuId,evt){
+const menu=document.getElementById(menuId);
+if(!menu)return;
+const isOpen=menu.classList.contains("open");
+document.querySelectorAll(".mob-menu-wrap.open").forEach(m=>m.classList.remove("open"));
+if(!isOpen){
+menu.classList.add("open");
+const dd=menu.querySelector(".mob-dropdown");
+const btn=evt?evt.currentTarget:menu.querySelector("button");
+if(dd&&btn){
+const r=btn.getBoundingClientRect();
+dd.style.top=(r.bottom+2)+"px";
+dd.style.right=(window.innerWidth-r.right)+"px";
+}
+}
+}
+
+function onOutboundTypeChange(){
+const t=document.getElementById("ob-type").value;
+document.getElementById("ob-ghostnode-fields").style.display=t==="ghostnode"?"flex":"none";
+document.getElementById("ob-proxy-fields").style.display=(t==="socks5"||t==="http")?"flex":"none";
+}
+function parseGnLink(){
+const link=document.getElementById("ob-gn-link").value.trim();
+if(!link.startsWith("gn://"))return;
+try{
+const rest=link.slice(5);
+const queryAndFrag=rest.includes("?")?rest.split("?")[1]:"";
+const[query]=queryAndFrag.split("#");
+const p=Object.fromEntries(new URLSearchParams(query));
+const atIdx=rest.indexOf("@");
+const nanoid=rest.substring(0,atIdx);
+const hostpart=rest.substring(atIdx+1).split("?")[0];
+const hp=hostpart.lastIndexOf(":");
+const realHost=hp>0?hostpart.substring(0,hp):hostpart;
+const realPort=hp>0?hostpart.substring(hp+1):"443";
+const t=p.transport||"ws";
+const scheme=p.security==="tls"?(t==="h2"||t==="http2"?"https":"wss"):(t==="h2"||t==="http2"?"http":"ws");
+document.getElementById("ob-url").value=`${scheme}://${realHost}:${realPort}`;
+document.getElementById("ob-nanoid").value=nanoid||"";
+const tm={ws:"ws",websocket:"ws",h2:"h2",http2:"h2",grpc:"grpc",hr:"hr","http-request":"hr",sse:"sse","http-request-sse":"sse","http-request-body":"hrb",hrb:"hrb"};
+document.getElementById("ob-transport").value=tm[t]||"ws";
+document.getElementById("ob-path").value=p.path||"/gn";
+document.getElementById("ob-sni").value=p.sni||"";
+document.getElementById("ob-host").value=p.host||"";
+}catch(e){}
+}
+function updateDialerProxyOptions(editId){
+const sel=document.getElementById("ob-dialer-proxy");
+sel.innerHTML="<option value=\"\">None</option>";
+_outbounds.forEach(o=>{if(o.id!==editId)sel.innerHTML+=`<option value="${esc(o.tag)}">${esc(o.tag)}</option>`;});
+}
+function openOutboundModal(id){
+_editOutboundId=id||null;
+document.getElementById("outbound-modal-title").textContent=id?"Edit Outbound":"Add Outbound";
+document.getElementById("ob-advanced").style.display="none";
+document.getElementById("ob-adv-arrow").textContent="▶";
+if(id){
+const o=_outbounds.find(x=>x.id===id);
+if(o){
+document.getElementById("ob-tag").value=o.tag;
+document.getElementById("ob-type").value=o.type;
+onOutboundTypeChange();
+if(o.type==="ghostnode"){
+try{
+const c=typeof o.config==="string"?JSON.parse(o.config):o.config;
+document.getElementById("ob-url").value=c.url||"";
+document.getElementById("ob-nanoid").value=c.nanoid||"";
+document.getElementById("ob-transport").value=c.transport||"ws";
+document.getElementById("ob-path").value=c.path||"/gn";
+document.getElementById("ob-sni").value=c.sni||"";
+document.getElementById("ob-host").value=c.host||"";
+const insBtn=document.getElementById("ob-insecure");
+insBtn.className="toggle-btn "+(c.allow_insecure?"on":"off");
+}catch(e){}
+}else if(o.type==="socks5"||o.type==="http"){
+try{
+const c=typeof o.config==="string"?JSON.parse(o.config):o.config;
+document.getElementById("ob-proxy-host").value=c.host||"";
+document.getElementById("ob-proxy-port").value=c.port||"";
+document.getElementById("ob-proxy-user").value=c.username||"";
+document.getElementById("ob-proxy-pass").value=c.password||"";
+}catch(e){}
+}
+try{
+const c=typeof o.config==="string"?JSON.parse(o.config):o.config;
+const so=c.sockopt||{};
+document.getElementById("ob-bind-address").value=c.bind_address||"";
+document.getElementById("ob-redirect-address").value=c.redirect_address||"";
+document.getElementById("ob-interface").value=c.interface||"";
+document.getElementById("ob-mark").value=so.mark||"";
+document.getElementById("ob-tcp-congestion").value=so.tcp_congestion||"";
+document.getElementById("ob-tcp-nodelay").className="toggle-btn "+(so.tcp_no_delay?"on":"off");
+document.getElementById("ob-tcp-keepalive").className="toggle-btn "+(so.tcp_keep_alive?"on":"off");
+document.getElementById("ob-tcp-fastopen").className="toggle-btn "+(so.tcp_fast_open?"on":"off");
+updateDialerProxyOptions(id);
+document.getElementById("ob-dialer-proxy").value=c.dialer_proxy||"";
+}catch(e){updateDialerProxyOptions(id);}
+}}else{
+document.getElementById("ob-tag").value="";
+document.getElementById("ob-type").value="direct";
+document.getElementById("ob-gn-link").value="";
+document.getElementById("ob-url").value="";
+document.getElementById("ob-nanoid").value="";
+document.getElementById("ob-transport").value="ws";
+document.getElementById("ob-path").value="/gn";
+document.getElementById("ob-sni").value="";
+document.getElementById("ob-host").value="";
+document.getElementById("ob-proxy-host").value="";
+document.getElementById("ob-proxy-port").value="";
+document.getElementById("ob-proxy-user").value="";
+document.getElementById("ob-proxy-pass").value="";
+document.getElementById("ob-insecure").className="toggle-btn off";
+document.getElementById("ob-bind-address").value="";
+document.getElementById("ob-redirect-address").value="";
+document.getElementById("ob-interface").value="";
+document.getElementById("ob-mark").value="";
+document.getElementById("ob-tcp-congestion").value="";
+document.getElementById("ob-tcp-nodelay").className="toggle-btn off";
+document.getElementById("ob-tcp-keepalive").className="toggle-btn off";
+document.getElementById("ob-tcp-fastopen").className="toggle-btn off";
+updateDialerProxyOptions(null);
+onOutboundTypeChange();
+}
+openModal("modal-outbound");
+}
+async function saveOutbound(){
+const type=v("ob-type");
+let cfg={};
+if(type==="ghostnode"){
+cfg={url:v("ob-url"),nanoid:v("ob-nanoid"),transport:v("ob-transport"),path:v("ob-path"),sni:v("ob-sni"),host:v("ob-host"),allow_insecure:isBtnOn(document.getElementById("ob-insecure"))};
+}else if(type==="socks5"||type==="http"){
+cfg={host:v("ob-proxy-host"),port:parseInt(v("ob-proxy-port"))||1080,username:v("ob-proxy-user"),password:v("ob-proxy-pass")};
+}
+const _so={};
+if(isBtnOn(document.getElementById("ob-tcp-nodelay")))_so.tcp_no_delay=true;
+if(isBtnOn(document.getElementById("ob-tcp-keepalive")))_so.tcp_keep_alive=true;
+if(isBtnOn(document.getElementById("ob-tcp-fastopen")))_so.tcp_fast_open=true;
+const _mark=parseInt(v("ob-mark"))||0;
+if(_mark)_so.mark=_mark;
+const _cc=v("ob-tcp-congestion");
+if(_cc)_so.tcp_congestion=_cc;
+if(v("ob-bind-address"))cfg.bind_address=v("ob-bind-address");
+if(v("ob-redirect-address"))cfg.redirect_address=v("ob-redirect-address");
+if(v("ob-interface"))cfg.interface=v("ob-interface");
+if(v("ob-dialer-proxy"))cfg.dialer_proxy=v("ob-dialer-proxy");
+if(Object.keys(_so).length)cfg.sockopt=_so;
+const body={tag:v("ob-tag"),type,config:cfg};
+try{
+if(_editOutboundId)await api("PUT",`/api/outbounds/${_editOutboundId}`,body);
+else await api("POST","/api/outbounds",body);
+closeModal("modal-outbound");
+await loadOutbounds();
+showAlert("outbounds",_editOutboundId?"Outbound updated":"Outbound created");
+}catch(e){showAlert("outbounds","Error: "+e.message,"err")}
+}
+async function deleteOutbound(id){
+if(!confirm("Delete this outbound?"))return;
+await api("DELETE",`/api/outbounds/${id}`);
+await loadOutbounds();
+showAlert("outbounds","Outbound deleted");
+}
+
+// ---- LOGS ----
+let _logStream=null,_liveLogging=false;
+async function loadLogs(){
+const lines=document.getElementById("log-lines").value;
+const viewer=document.getElementById("log-viewer");
+try{
+const d=await api("GET",`/api/logs?lines=${lines}`);
+viewer.textContent=(d.lines||[]).join("\n")||"(no logs yet)";
+if(document.getElementById("log-autoscroll").checked)viewer.scrollTop=viewer.scrollHeight;
+}catch(e){viewer.textContent="Error loading logs"}
+}
+function toggleLiveLog(){
+const btn=document.getElementById("log-live-btn");
+const viewer=document.getElementById("log-viewer");
+if(_liveLogging){
+if(_logStream){_logStream.close();_logStream=null;}
+_liveLogging=false;
+btn.textContent="▶ Start Live";
+btn.style.color="";
+}else{
+_liveLogging=true;
+btn.textContent="⏸ Stop Live";
+btn.style.color="var(--accent)";
+loadLogs();
+_logStream=new EventSource(PREFIX+"/api/logs/stream");
+_logStream.onmessage=function(e){
+viewer.textContent+=e.data+"\n";
+if(document.getElementById("log-autoscroll").checked)viewer.scrollTop=viewer.scrollHeight;
+};
+_logStream.onerror=function(){
+_liveLogging=false;
+btn.textContent="▶ Start Live";
+btn.style.color="";
+if(_logStream){_logStream.close();_logStream=null;}
+};
+}
+}
+
+// helpers
+function v(id){return document.getElementById(id).value}
+function esc(s){if(s===null||s===undefined)return "";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+// close overlay on click outside
+document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open")}));
+
+// close mob menus on click outside
+document.addEventListener("click",e=>{
+if(!e.target.closest(".mob-menu-wrap"))
+document.querySelectorAll(".mob-menu-wrap.open").forEach(m=>m.classList.remove("open"));
+});
+
+// ---- SETTINGS ----
+async function loadSettings(){
+try{
+const d=await api("GET","/api/config");
+document.getElementById("cfg-panel-host").value=d.panel_host||"";
+document.getElementById("cfg-panel-port").value=d.panel_port||"";
+document.getElementById("cfg-panel-path").value=d.panel_path||"";
+document.getElementById("cfg-panel-threads").value=d.panel_threads||"";
+document.getElementById("cfg-log-level").value=d.log_level||"info";
+document.getElementById("cfg-log-file").value=d.log_file||"";
+document.getElementById("cfg-hostname").value=d.hostname||"";
+document.getElementById("cfg-auto-update").className="toggle-btn "+(d.auto_update?"on":"off");
+document.getElementById("cfg-update-on-startup").className="toggle-btn "+(d.update_check_on_startup?"on":"off");
+document.getElementById("cfg-update-interval").value=d.update_check_interval||300;
+document.getElementById("cfg-update-proxy").value=d.update_proxy||"";
+}catch(e){}
+}
+async function saveSettings(andRestart){
+const body={
+panel_host:document.getElementById("cfg-panel-host").value,
+panel_port:parseInt(document.getElementById("cfg-panel-port").value)||9090,
+panel_path:document.getElementById("cfg-panel-path").value,
+panel_threads:parseInt(document.getElementById("cfg-panel-threads").value)||4,
+log_level:document.getElementById("cfg-log-level").value,
+log_file:document.getElementById("cfg-log-file").value,
+hostname:document.getElementById("cfg-hostname").value,
+auto_update:isBtnOn(document.getElementById("cfg-auto-update")),
+update_check_on_startup:isBtnOn(document.getElementById("cfg-update-on-startup")),
+update_check_interval:parseInt(document.getElementById("cfg-update-interval").value)||300,
+update_proxy:document.getElementById("cfg-update-proxy").value,
+};
+const al=document.getElementById("settings-alert");
+try{
+await api("POST","/api/config",body);
+if(andRestart){
+al.innerHTML="<span style='color:var(--warning)'>Restarting… reconnect in a few seconds.</span>";
+setTimeout(()=>api("POST","/api/restart").catch(()=>{}),200);
+setTimeout(()=>location.reload(),4000);
+}else{
+al.innerHTML="<span style='color:var(--accent)'>Saved. Restart to apply changes.</span>";
+setTimeout(()=>al.innerHTML="",4000);
+}
+}catch(e){al.innerHTML="<span style='color:var(--danger)'>Error saving settings.</span>";}
+}
+async function checkUpdate(){
+const btn=document.getElementById("btn-check-update");
+const al=document.getElementById("settings-alert");
+btn.disabled=true;
+btn.textContent="Checking...";
+try{
+const d=await api("GET","/api/update/check");
+if(d.update_available){
+al.innerHTML=`<span style='color:var(--accent)'>Update available: ${d.latest} (current: ${d.current}). <a href="#" onclick="installUpdate();return false" style="color:var(--accent);text-decoration:underline">Install</a></span>`;
+}else{
+al.innerHTML=`<span style='color:var(--accent)'>Already up to date (${d.current}).</span>`;
+setTimeout(()=>al.innerHTML="",4000);
+}
+}catch(e){al.innerHTML="<span style='color:var(--danger)'>Failed to check for updates.</span>";}
+btn.disabled=false;
+btn.textContent="Check for Update";
+}
+async function installUpdate(){
+const al=document.getElementById("settings-alert");
+al.innerHTML="<span style='color:var(--warning)'>Downloading update, will restart automatically…</span>";
+try{await api("POST","/api/update/install");}catch(e){}
+}
+
+// ---- XRAY ----
+function fmtBytes(b){if(!b)return"0 B";const u=["B","KB","MB","GB","TB"];let i=0;while(b>=1024&&i<4){b/=1024;i++;}return b.toFixed(1)+" "+u[i];}
+function switchXrayTab(tab){
+_xrayTab=tab;
+["inbounds","clients","outbounds"].forEach(t=>{
+document.getElementById("xray-tab-"+t).style.display=t===tab?"":"none";
+const btn=document.getElementById("xtab-"+t);
+btn.style.fontWeight=t===tab?"700":"";
+btn.style.borderColor=t===tab?"var(--accent)":"";
+btn.style.color=t===tab?"var(--accent)":"";
+});
+}
+async function loadXray(){
+try{
+const s=await api("GET","/api/xray/status");
+const installed=s.installed;
+const running=s.running;
+const ver=s.version||"";
+document.getElementById("xray-status-text").innerHTML=
+`<span style="color:${installed?"var(--accent)":"var(--danger)"}">${installed?"Installed":"Not Installed"}</span>`+
+(installed?` &nbsp;|&nbsp; <span style="color:${running?"var(--accent)":"var(--danger)"}">${running?"Running":"Stopped"}</span>`+
+(ver?` &nbsp;|&nbsp; ${ver}`+` &nbsp;|&nbsp; SOCKS5: :${s.socks_port}`:""):"");
+document.getElementById("btn-xray-install").style.display=installed?"none":"";
+document.getElementById("btn-xray-reinstall").style.display=installed?"":"none";
+}catch(e){}
+const [ibs,cls,obs]=await Promise.all([
+api("GET","/api/xray/inbounds").catch(()=>[]),
+api("GET","/api/xray/clients").catch(()=>[]),
+api("GET","/api/xray/outbounds").catch(()=>[]),
+]);
+_xrayInbounds=ibs||[];_xrayClients=cls||[];_xrayOutbounds=obs||[];
+renderXrayInbounds();renderXrayClients();renderXrayOutbounds();
+try{
+const raw=await api("GET","/api/xray/raw-config");
+document.getElementById("xray-raw-cfg").value=JSON.stringify(raw,null,2);
+}catch(e){}
+}
+function renderXrayInbounds(){
+const tb=document.getElementById("xray-inbounds-tbody");
+if(!_xrayInbounds.length){tb.innerHTML='<tr><td colspan="5" class="empty-state"><p>No inbounds</p></td></tr>';return;}
+tb.innerHTML=_xrayInbounds.map(r=>`<tr style="${r.enabled?"":" opacity:.4"}">
+<td><code style="font-size:.8em">${r.tag}</code></td>
+<td>${r.port}</td>
+<td><span class="badge">${r.protocol}</span></td>
+<td><button class="toggle-btn ${r.enabled?"on":"off"} btn-sm" onclick="toggleXrayInbound(${r.id})"></button></td>
+<td class="tbl-actions"><div class="tbl-actions-inner">
+<button class="btn btn-ghost btn-sm" onclick="editXrayInbound(${r.id})">Edit</button>
+<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteXrayInbound(${r.id})">Del</button>
+</div></td></tr>`).join("");
+}
+function renderXrayClients(){
+const tb=document.getElementById("xray-clients-tbody");
+if(!_xrayClients.length){tb.innerHTML='<tr><td colspan="7" class="empty-state"><p>No clients</p></td></tr>';return;}
+tb.innerHTML=_xrayClients.map(c=>{
+const used=(c.upload||0)+(c.download||0);
+const limit=c.traffic_limit||0;
+const pct=limit>0?Math.min(100,Math.round(used/limit*100)):0;
+const trafficStr=limit>0?`${fmtBytes(used)} / ${fmtBytes(limit)} (${pct}%)`:fmtBytes(used);
+return`<tr style="${c.enabled?"":" opacity:.4"}">
+<td>${c.name}</td>
+<td><span class="badge">${c.inbound_tag}</span></td>
+<td><code style="font-size:.75em">${c.uuid}</code></td>
+<td style="font-size:.82em">${trafficStr}</td>
+<td style="font-size:.82em">${c.expire_date||"—"}</td>
+<td><button class="toggle-btn ${c.enabled?"on":"off"} btn-sm" onclick="toggleXrayClient(${c.id})"></button></td>
+<td class="tbl-actions"><div class="tbl-actions-inner">
+<button class="btn btn-ghost btn-sm" onclick="editXrayClient(${c.id})">Edit</button>
+<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteXrayClient(${c.id})">Del</button>
+</div></td></tr>`;}).join("");
+}
+function renderXrayOutbounds(){
+const tb=document.getElementById("xray-outbounds-tbody");
+if(!_xrayOutbounds.length){tb.innerHTML='<tr><td colspan="3" class="empty-state"><p>No outbounds</p></td></tr>';return;}
+tb.innerHTML=_xrayOutbounds.map(o=>`<tr>
+<td><code style="font-size:.8em">${o.tag}</code></td>
+<td><span class="badge">${o.protocol}</span></td>
+<td class="tbl-actions"><div class="tbl-actions-inner">
+<button class="btn btn-ghost btn-sm" onclick="editXrayOutbound(${o.id})">Edit</button>
+<button class="btn btn-ghost btn-sm" id="xo-test-${o.id}" onclick="testXrayOutbound(${o.id})">Test</button>
+<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteXrayOutbound(${o.id})">Del</button>
+</div></td></tr>`).join("");
+}
+async function xrayAction(action){
+const isInstall=action==="install"||action==="reinstall";
+if(isInstall&&!confirm("Download and install Xray core? (~10MB)"))return;
+const proxy=document.getElementById("xray-install-proxy")?.value||"";
+await api("POST",isInstall?"/api/xray/install":`/api/xray/${action}`,isInstall&&proxy?{proxy}:undefined).catch(()=>{});
+if(isInstall){
+const _alertEl=document.getElementById("alert-xray");
+const _setProgress=msg=>{if(_alertEl){_alertEl.textContent=msg;_alertEl.className="alert show ok";}};
+_setProgress("Starting download…");
+const _pollInstall=async()=>{
+try{
+const st=await api("GET","/api/xray/install-status");
+if(st.installing){
+const p=st.progress||{};
+let msg="Installing…";
+if(p.stage==="downloading"){
+if(p.total>0){const pct=Math.round(p.bytes/p.total*100);msg=`Downloading: ${(p.bytes/1048576).toFixed(1)} MB / ${(p.total/1048576).toFixed(1)} MB (${pct}%)`;}
+else if(p.bytes>0){msg=`Downloading: ${(p.bytes/1048576).toFixed(1)} MB…`;}
+}else if(p.stage==="extracting"){msg="Extracting…";}
+_setProgress(msg);
+setTimeout(_pollInstall,800);
+}else{
+if(st.error){showAlert("xray",`Install failed: ${st.error}`,"error");}
+else{showAlert("xray","Xray installed successfully!");}
+loadXray();
+}
+}catch(e){setTimeout(_pollInstall,1500);}
+};
+setTimeout(_pollInstall,800);
+}else{setTimeout(loadXray,1200);}
+}
+function openXrayInboundModal(){
+_editXrayInboundId=null;
+document.getElementById("xray-inbound-modal-title").textContent="Add Xray Inbound";
+document.getElementById("xi-tag").value="";
+document.getElementById("xi-port").value="";
+document.getElementById("xi-protocol").value="vless";
+document.getElementById("xi-settings").value="{}";
+document.getElementById("xi-stream").value="{}";
+openModal("modal-xray-inbound");
+}
+function editXrayInbound(id){
+const r=_xrayInbounds.find(x=>x.id===id);if(!r)return;
+_editXrayInboundId=id;
+document.getElementById("xray-inbound-modal-title").textContent="Edit Xray Inbound";
+document.getElementById("xi-tag").value=r.tag;
+document.getElementById("xi-port").value=r.port;
+document.getElementById("xi-protocol").value=r.protocol;
+try{document.getElementById("xi-settings").value=JSON.stringify(JSON.parse(r.settings||"{}"),null,2);}catch(e){document.getElementById("xi-settings").value=r.settings||"{}";}
+try{document.getElementById("xi-stream").value=JSON.stringify(JSON.parse(r.stream_settings||"{}"),null,2);}catch(e){document.getElementById("xi-stream").value=r.stream_settings||"{}";}
+openModal("modal-xray-inbound");
+}
+async function saveXrayInbound(){
+let settings,stream;
+try{settings=JSON.parse(document.getElementById("xi-settings").value);}catch(e){alert("Invalid settings JSON");return;}
+try{stream=JSON.parse(document.getElementById("xi-stream").value);}catch(e){alert("Invalid stream settings JSON");return;}
+const body={tag:document.getElementById("xi-tag").value,port:parseInt(document.getElementById("xi-port").value),protocol:document.getElementById("xi-protocol").value,settings,stream_settings:stream};
+if(_editXrayInboundId){await api("PUT",`/api/xray/inbounds/${_editXrayInboundId}`,body);}
+else{await api("POST","/api/xray/inbounds",body);}
+closeModal("modal-xray-inbound");loadXray();
+}
+async function deleteXrayInbound(id){if(!confirm("Delete Xray inbound?"))return;await api("DELETE",`/api/xray/inbounds/${id}`);loadXray();}
+async function toggleXrayInbound(id){await api("PUT",`/api/xray/inbounds/${id}`,{enabled:_xrayInbounds.find(x=>x.id===id)?.enabled?0:1});loadXray();}
+function openXrayClientModal(){
+_editXrayClientId=null;
+document.getElementById("xray-client-modal-title").textContent="Add Xray Client";
+document.getElementById("xc-name").value="";
+document.getElementById("xc-traffic").value="0";
+document.getElementById("xc-expire").value="";
+document.getElementById("xc-uuid-row").style.display="none";
+const sel=document.getElementById("xc-inbound");
+sel.innerHTML=_xrayInbounds.map(i=>`<option value="${i.tag}">${i.tag}</option>`).join("");
+openModal("modal-xray-client");
+}
+function editXrayClient(id){
+const c=_xrayClients.find(x=>x.id===id);if(!c)return;
+_editXrayClientId=id;
+document.getElementById("xray-client-modal-title").textContent="Edit Xray Client";
+document.getElementById("xc-name").value=c.name;
+document.getElementById("xc-traffic").value=c.traffic_limit?+(c.traffic_limit/1073741824).toFixed(2):0;
+document.getElementById("xc-expire").value=c.expire_date||"";
+document.getElementById("xc-uuid-row").style.display="";
+document.getElementById("xc-uuid").value=c.uuid;
+const sel=document.getElementById("xc-inbound");
+sel.innerHTML=_xrayInbounds.map(i=>`<option value="${i.tag}"${i.tag===c.inbound_tag?" selected":""}>${i.tag}</option>`).join("");
+openModal("modal-xray-client");
+}
+async function saveXrayClient(){
+const body={name:document.getElementById("xc-name").value,inbound_tag:document.getElementById("xc-inbound").value,traffic_limit_gb:parseFloat(document.getElementById("xc-traffic").value)||0,expire_date:document.getElementById("xc-expire").value};
+if(_editXrayClientId){await api("PUT",`/api/xray/clients/${_editXrayClientId}`,body);}
+else{const r=await api("POST","/api/xray/clients",body);document.getElementById("xc-uuid-row").style.display="";document.getElementById("xc-uuid").value=r.uuid;_editXrayClientId=r.id;}
+closeModal("modal-xray-client");loadXray();
+}
+async function deleteXrayClient(id){if(!confirm("Delete Xray client?"))return;await api("DELETE",`/api/xray/clients/${id}`);loadXray();}
+async function toggleXrayClient(id){await api("POST",`/api/xray/clients/${id}/toggle`);loadXray();}
+function openXrayOutboundModal(){
+_editXrayOutboundId=null;
+document.getElementById("xray-outbound-modal-title").textContent="Add Xray Outbound";
+document.getElementById("xo-tag").value="";
+document.getElementById("xo-protocol").value="vmess";
+document.getElementById("xo-settings").value="{}";
+document.getElementById("xo-stream").value="{}";
+openModal("modal-xray-outbound");
+}
+function editXrayOutbound(id){
+const o=_xrayOutbounds.find(x=>x.id===id);if(!o)return;
+_editXrayOutboundId=id;
+document.getElementById("xray-outbound-modal-title").textContent="Edit Xray Outbound";
+document.getElementById("xo-tag").value=o.tag;
+document.getElementById("xo-protocol").value=o.protocol;
+try{document.getElementById("xo-settings").value=JSON.stringify(JSON.parse(o.settings||"{}"),null,2);}catch(e){document.getElementById("xo-settings").value=o.settings||"{}";}
+try{document.getElementById("xo-stream").value=JSON.stringify(JSON.parse(o.stream_settings||"{}"),null,2);}catch(e){document.getElementById("xo-stream").value=o.stream_settings||"{}";}
+openModal("modal-xray-outbound");
+}
+async function saveXrayOutbound(){
+let settings,stream;
+try{settings=JSON.parse(document.getElementById("xo-settings").value);}catch(e){alert("Invalid settings JSON");return;}
+try{stream=JSON.parse(document.getElementById("xo-stream").value);}catch(e){alert("Invalid stream settings JSON");return;}
+const body={tag:document.getElementById("xo-tag").value,protocol:document.getElementById("xo-protocol").value,settings,stream_settings:stream};
+if(_editXrayOutboundId){await api("PUT",`/api/xray/outbounds/${_editXrayOutboundId}`,body);}
+else{await api("POST","/api/xray/outbounds",body);}
+closeModal("modal-xray-outbound");loadXray();
+}
+async function deleteXrayOutbound(id){if(!confirm("Delete Xray outbound?"))return;await api("DELETE",`/api/xray/outbounds/${id}`);loadXray();}
+async function testXrayOutbound(id){
+const btn=document.getElementById(`xo-test-${id}`);
+btn.textContent="Testing…";btn.disabled=true;
+try{
+const r=await api("POST",`/api/xray/outbounds/${id}/test`);
+btn.textContent=r.latency_ms!=null?`${r.latency_ms}ms`:"Timeout";
+}catch(e){btn.textContent="Error";}
+btn.disabled=false;
+setTimeout(()=>{btn.textContent="Test";},4000);
+}
+async function saveXrayRawConfig(){
+const txt=document.getElementById("xray-raw-cfg").value;
+let parsed;
+try{parsed=JSON.parse(txt);}catch(e){alert("Invalid JSON");return;}
+await api("POST","/api/xray/raw-config",parsed).catch(()=>{});
+showAlert("xray","Raw config saved. Restarting Xray…");
+await api("POST","/api/xray/restart").catch(()=>{});
+setTimeout(loadXray,1500);
+}
+
+// init theme + lang
+(function(){
+const t=localStorage.getItem("gn-theme");
+if(t)document.documentElement.setAttribute("data-theme",t);
+applyLang();
+switchPage("overview",document.querySelector(".nav-item.active"));
+})();
+</script>
+</body>
+</html>

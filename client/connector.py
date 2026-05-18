@@ -1,0 +1,53 @@
+#!/usr/bin/env python3.13
+import asyncio
+import logging
+import socket
+from core.protocol import encode_header,CMD_TCP,ADDR_IPV4,ADDR_DOMAIN,ADDR_IPV6
+
+logger=logging.getLogger(__name__)
+
+async def open_transport(cfg):
+    transport=cfg.get("transport","ws")
+    url=cfg.get("url","")
+    path=cfg.get("path","/gn")
+    sni=cfg.get("sni","")
+    allow_insecure=cfg.get("allow_insecure",False)
+    if transport in ("ws","websocket"):
+        from transport.websocket import connect as ws_connect
+        return await ws_connect(url,path,sni,allow_insecure)
+    elif transport in ("h2","http2"):
+        from transport.http2 import connect as h2_connect
+        return await h2_connect(url,path,sni,allow_insecure)
+    elif transport=="grpc":
+        from transport.grpc import connect as grpc_connect
+        return await grpc_connect(url,sni,allow_insecure)
+    elif transport in ("hr","http-request"):
+        from transport.http_request import connect as hr_connect
+        return await hr_connect(url,path,sni,allow_insecure)
+    elif transport in ("sse","http-request-sse"):
+        from transport.http_request_sse import connect as sse_connect
+        return await sse_connect(url,path,sni,allow_insecure)
+    elif transport in ("hrb","http-request-body"):
+        from transport.http_request_body import connect as hrb_connect
+        return await hrb_connect(url,path,sni,allow_insecure)
+    raise ValueError(f"unknown transport: {transport}")
+
+def _addr_type_from_socks(atyp):
+    if atyp==0x01:
+        return ADDR_IPV4
+    elif atyp==0x03:
+        return ADDR_DOMAIN
+    elif atyp==0x04:
+        return ADDR_IPV6
+    return ADDR_DOMAIN
+
+async def connect_to_server(cfg, target_addr, target_port, socks_atyp=0x03):
+    nanoid=cfg["nanoid"]
+    addr_type=_addr_type_from_socks(socks_atyp)
+    header=encode_header(nanoid,CMD_TCP,addr_type,target_addr,target_port)
+    reader,writer=await open_transport(cfg)
+    from core.crypto import client_handshake
+    reader,writer=await client_handshake(reader,writer,nanoid,cfg.get("fp",""))
+    writer.write(header)
+    await writer.drain()
+    return reader,writer

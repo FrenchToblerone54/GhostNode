@@ -1,0 +1,16 @@
+[Unit]
+Description=GhostNode Proxy Server
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ghostnode -c /etc/ghostnode/config.toml
+Restart=always
+RestartSec=3
+User=root
+StandardOutput=append:/var/log/ghostnode.log
+StandardError=append:/var/log/ghostnode.log
+
+[Install]
+WantedBy=multi-user.target

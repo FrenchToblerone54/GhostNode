@@ -1,0 +1,13 @@
+[Unit]
+Description=GhostNode Client (SOCKS5 proxy)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3.13 /opt/ghostnode/client/main.py run --port 1080
+Restart=on-failure
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target
