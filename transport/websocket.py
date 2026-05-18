@@ -50,24 +50,27 @@ class WSStreamReader:
         return data
 
 class WSStreamWriter:
-    def __init__(self, ws, session=None):
+    def __init__(self, ws, session=None, ws_send_batch_bytes=65536):
         self._ws=ws
         self._session=session
         self._buf=bytearray()
         self._closed=False
+        self._batch=ws_send_batch_bytes
 
     def write(self, data):
         if not self._closed:
             self._buf.extend(data)
 
     async def drain(self):
-        if self._buf and not self._closed:
-            data=bytes(self._buf)
-            self._buf.clear()
-            try:
-                await self._ws.send_bytes(data)
-            except Exception:
-                self._closed=True
+        if not self._buf or self._closed:
+            return
+        data=bytes(self._buf)
+        self._buf.clear()
+        try:
+            for i in range(0, len(data), self._batch):
+                await self._ws.send_bytes(data[i:i+self._batch])
+        except Exception:
+            self._closed=True
 
     def close(self):
         self._closed=True
@@ -89,7 +92,7 @@ def _make_ssl_context(cert, key):
     ctx.load_cert_chain(cert,key)
     return ctx
 
-async def serve(host, port, path, handler, ssl_cert="", ssl_key="", host_header=""):
+async def serve(host, port, path, handler, ssl_cert="", ssl_key="", host_header="", ws_send_batch_bytes=65536):
     ssl_ctx=None
     if ssl_cert and ssl_key:
         ssl_ctx=_make_ssl_context(ssl_cert,ssl_key)
@@ -100,7 +103,7 @@ async def serve(host, port, path, handler, ssl_cert="", ssl_key="", host_header=
         ws=web.WebSocketResponse(max_msg_size=0,compress=False,heartbeat=None)
         await ws.prepare(request)
         reader=WSStreamReader(ws)
-        writer=WSStreamWriter(ws)
+        writer=WSStreamWriter(ws, ws_send_batch_bytes=ws_send_batch_bytes)
         try:
             await handler(reader,writer)
         except Exception as e:
@@ -122,7 +125,7 @@ async def serve(host, port, path, handler, ssl_cert="", ssl_key="", host_header=
             await asyncio.sleep(0.1)
     return _Server()
 
-def make_server_handler(path, handler, host_header=""):
+def make_server_handler(path, handler, host_header="", ws_send_batch_bytes=65536):
     async def ws_handler(request):
         if request.path!=path:
             return web.Response(status=404)
@@ -131,7 +134,7 @@ def make_server_handler(path, handler, host_header=""):
         ws=web.WebSocketResponse(max_msg_size=0, compress=False, heartbeat=None)
         await ws.prepare(request)
         reader=WSStreamReader(ws)
-        writer=WSStreamWriter(ws)
+        writer=WSStreamWriter(ws, ws_send_batch_bytes=ws_send_batch_bytes)
         try:
             await handler(reader, writer)
         except Exception as e:
@@ -159,5 +162,6 @@ async def connect(url, path, sni="", allow_insecure=False, host_header="", extra
     session=ClientSession(timeout=ClientTimeout(total=None,connect=30))
     ws=await session.ws_connect(full_url,ssl=ssl_ctx,max_msg_size=0,compress=False,heartbeat=ping_iv,headers=headers)
     reader=WSStreamReader(ws)
-    writer=WSStreamWriter(ws,session)
+    batch=(extra or {}).get("ws_send_batch_bytes",65536)
+    writer=WSStreamWriter(ws,session,ws_send_batch_bytes=batch)
     return reader,writer

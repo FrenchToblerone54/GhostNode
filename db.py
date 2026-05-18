@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 logger=logging.getLogger(__name__)
 
-_CURRENT_VERSION=2
+_CURRENT_VERSION=3
 
 SCHEMA="""
 CREATE TABLE IF NOT EXISTS inbounds (
@@ -28,7 +28,12 @@ CREATE TABLE IF NOT EXISTS inbounds (
     poll_connections INTEGER DEFAULT 4,
     ping_interval INTEGER DEFAULT 20,
     ping_timeout INTEGER DEFAULT 10,
-    user_agent TEXT DEFAULT ''
+    user_agent TEXT DEFAULT '',
+    max_upload_bytes INTEGER DEFAULT 1048576,
+    max_download_bytes INTEGER DEFAULT 1048576,
+    min_download_ms INTEGER DEFAULT 0,
+    poll_min_connections INTEGER DEFAULT 1,
+    ws_send_batch_bytes INTEGER DEFAULT 65536
 );
 CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,6 +121,13 @@ _MIGRATIONS=[
         "ALTER TABLE inbounds ADD COLUMN ping_interval INTEGER DEFAULT 20",
         "ALTER TABLE inbounds ADD COLUMN ping_timeout INTEGER DEFAULT 10",
         "ALTER TABLE inbounds ADD COLUMN user_agent TEXT DEFAULT ''",
+    ],
+    [
+        "ALTER TABLE inbounds ADD COLUMN max_upload_bytes INTEGER DEFAULT 1048576",
+        "ALTER TABLE inbounds ADD COLUMN max_download_bytes INTEGER DEFAULT 1048576",
+        "ALTER TABLE inbounds ADD COLUMN min_download_ms INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN poll_min_connections INTEGER DEFAULT 1",
+        "ALTER TABLE inbounds ADD COLUMN ws_send_batch_bytes INTEGER DEFAULT 65536",
     ],
 ]
 
@@ -224,10 +236,10 @@ class Database:
             row=await cur.fetchone()
             return dict(row) if row else None
 
-    async def create_inbound(self, tag, port, transport="websocket", path="/gn", ssl_cert="", ssl_key="", listen_ip="0.0.0.0", ext_host="", ext_port=0, ext_tls=0, host="", sni="", pool_size=8, poll_connections=4, ping_interval=20, ping_timeout=10, user_agent=""):
+    async def create_inbound(self, tag, port, transport="websocket", path="/gn", ssl_cert="", ssl_key="", listen_ip="0.0.0.0", ext_host="", ext_port=0, ext_tls=0, host="", sni="", pool_size=8, poll_connections=4, ping_interval=20, ping_timeout=10, user_agent="", max_upload_bytes=1048576, max_download_bytes=1048576, min_download_ms=0, poll_min_connections=1, ws_send_batch_bytes=65536):
         await self._db.execute(
-            "INSERT INTO inbounds(tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent)
+            "INSERT INTO inbounds(tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent,max_upload_bytes,max_download_bytes,min_download_ms,poll_min_connections,ws_send_batch_bytes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent,max_upload_bytes,max_download_bytes,min_download_ms,poll_min_connections,ws_send_batch_bytes)
         )
         await self._db.commit()
         async with self._db.execute("SELECT last_insert_rowid()") as cur:

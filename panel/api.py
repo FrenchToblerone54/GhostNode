@@ -182,7 +182,7 @@ def api_stats():
 def api_inbounds():
     if request.method=="POST":
         d=request.json or {}
-        id=_run_async(_db.create_inbound(d["tag"],d["port"],d.get("transport","websocket"),d.get("path","/gn"),d.get("ssl_cert",""),d.get("ssl_key",""),d.get("listen_ip","0.0.0.0"),d.get("ext_host",""),int(d.get("ext_port",0)),1 if d.get("ext_tls") else 0,d.get("host",""),d.get("sni",""),int(d.get("pool_size",8)),int(d.get("poll_connections",4)),int(d.get("ping_interval",20)),int(d.get("ping_timeout",10)),d.get("user_agent","")))
+        id=_run_async(_db.create_inbound(d["tag"],d["port"],d.get("transport","websocket"),d.get("path","/gn"),d.get("ssl_cert",""),d.get("ssl_key",""),d.get("listen_ip","0.0.0.0"),d.get("ext_host",""),int(d.get("ext_port",0)),1 if d.get("ext_tls") else 0,d.get("host",""),d.get("sni",""),int(d.get("pool_size",8)),int(d.get("poll_connections",4)),int(d.get("ping_interval",20)),int(d.get("ping_timeout",10)),d.get("user_agent",""),int(d.get("max_upload_bytes",1048576)),int(d.get("max_download_bytes",1048576)),int(d.get("min_download_ms",0)),int(d.get("poll_min_connections",1)),int(d.get("ws_send_batch_bytes",65536))))
         if _inbound_mgr:
             inb=_run_async(_db.get_inbound(id))
             asyncio.run_coroutine_threadsafe(_inbound_mgr._start_inbound(inb),_loop)
@@ -198,7 +198,7 @@ def api_inbound(id):
         _run_async(_db.delete_inbound(id))
         return jsonify({"ok":True})
     d=request.json or {}
-    allowed={"tag","port","transport","path","ssl_cert","ssl_key","enabled","ext_host","ext_port","ext_tls","host","sni","listen_ip","pool_size","poll_connections","ping_interval","ping_timeout","user_agent"}
+    allowed={"tag","port","transport","path","ssl_cert","ssl_key","enabled","ext_host","ext_port","ext_tls","host","sni","listen_ip","pool_size","poll_connections","ping_interval","ping_timeout","user_agent","max_upload_bytes","max_download_bytes","min_download_ms","poll_min_connections","ws_send_batch_bytes"}
     kwargs={k:v for k,v in d.items() if k in allowed}
     _run_async(_db.update_inbound(id,**kwargs))
     if _inbound_mgr:

@@ -604,6 +604,15 @@ GhostNode
 <div class="fg"><label class="fl">Ping Timeout (s)</label><input class="fi" id="ib-ping-to" type="number" placeholder="10" value="10" min="1"></div>
 </div>
 <div class="fg"><label class="fl">User Agent (empty = Chrome default)</label><input class="fi" id="ib-ua" placeholder="Mozilla/5.0 ..."></div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Max Upload Bytes</label><input class="fi" id="ib-max-up" type="number" placeholder="1048576" value="1048576" min="1024"></div>
+<div class="fg"><label class="fl">Max Download Bytes</label><input class="fi" id="ib-max-down" type="number" placeholder="1048576" value="1048576" min="1024"></div>
+</div>
+<div class="fi-row">
+<div class="fg"><label class="fl">Min Download Wait (ms)</label><input class="fi" id="ib-min-dl-ms" type="number" placeholder="0" value="0" min="0"></div>
+<div class="fg"><label class="fl">Min Poll Connections</label><input class="fi" id="ib-poll-min" type="number" placeholder="1" value="1" min="1"></div>
+</div>
+<div class="fg"><label class="fl">WS Send Batch Bytes</label><input class="fi" id="ib-ws-batch" type="number" placeholder="65536" value="65536" min="1024"></div>
 <div class="fg-row"><label class="fl" data-i18n="col_status">Enabled</label><button class="toggle-btn on" id="ib-enabled" onclick="toggleBtn(this)"></button></div>
 </div>
 <div class="modal-ft">
@@ -1080,6 +1089,11 @@ document.getElementById("ib-poll-conn").value=i.poll_connections||4;
 document.getElementById("ib-ping-iv").value=i.ping_interval||20;
 document.getElementById("ib-ping-to").value=i.ping_timeout||10;
 document.getElementById("ib-ua").value=i.user_agent||"";
+document.getElementById("ib-max-up").value=i.max_upload_bytes||1048576;
+document.getElementById("ib-max-down").value=i.max_download_bytes||1048576;
+document.getElementById("ib-min-dl-ms").value=i.min_download_ms||0;
+document.getElementById("ib-poll-min").value=i.poll_min_connections||1;
+document.getElementById("ib-ws-batch").value=i.ws_send_batch_bytes||65536;
 document.getElementById("ib-enabled").className="toggle-btn "+(i.enabled?"on":"off");
 }}else{
 document.getElementById("ib-tag").value="";
@@ -1099,12 +1113,17 @@ document.getElementById("ib-poll-conn").value=4;
 document.getElementById("ib-ping-iv").value=20;
 document.getElementById("ib-ping-to").value=10;
 document.getElementById("ib-ua").value="";
+document.getElementById("ib-max-up").value=1048576;
+document.getElementById("ib-max-down").value=1048576;
+document.getElementById("ib-min-dl-ms").value=0;
+document.getElementById("ib-poll-min").value=1;
+document.getElementById("ib-ws-batch").value=65536;
 document.getElementById("ib-enabled").className="toggle-btn on";
 }
 openModal("modal-inbound");
 }
 async function saveInbound(){
-const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0",pool_size:parseInt(document.getElementById("ib-pool-size").value)||8,poll_connections:parseInt(document.getElementById("ib-poll-conn").value)||4,ping_interval:parseInt(document.getElementById("ib-ping-iv").value)||20,ping_timeout:parseInt(document.getElementById("ib-ping-to").value)||10,user_agent:document.getElementById("ib-ua").value.trim()};
+const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0",pool_size:parseInt(document.getElementById("ib-pool-size").value)||8,poll_connections:parseInt(document.getElementById("ib-poll-conn").value)||4,ping_interval:parseInt(document.getElementById("ib-ping-iv").value)||20,ping_timeout:parseInt(document.getElementById("ib-ping-to").value)||10,user_agent:document.getElementById("ib-ua").value.trim(),max_upload_bytes:parseInt(document.getElementById("ib-max-up").value)||1048576,max_download_bytes:parseInt(document.getElementById("ib-max-down").value)||1048576,min_download_ms:parseInt(document.getElementById("ib-min-dl-ms").value)||0,poll_min_connections:parseInt(document.getElementById("ib-poll-min").value)||1,ws_send_batch_bytes:parseInt(document.getElementById("ib-ws-batch").value)||65536};
 try{
 if(_editInboundId)await api("PUT",`/api/inbounds/${_editInboundId}`,body);
 else await api("POST","/api/inbounds",body);

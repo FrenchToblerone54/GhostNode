@@ -65,6 +65,11 @@ async def connect_to_server(cfg, target_addr, target_port, socks_atyp=0x03):
                 if "pi" in _srv: cfg["ping_interval"]=int(_srv["pi"])
                 if "pt" in _srv: cfg["ping_timeout"]=int(_srv["pt"])
                 if "ua" in _srv and _srv["ua"]: cfg["user_agent"]=_srv["ua"]
+                if "mub" in _srv: cfg["max_upload_bytes"]=int(_srv["mub"])
+                if "mdb" in _srv: cfg["max_download_bytes"]=int(_srv["mdb"])
+                if "mdm" in _srv: cfg["min_download_ms"]=int(_srv["mdm"])
+                if "pmc" in _srv: cfg["poll_min_connections"]=int(_srv["pmc"])
+                if "wsb" in _srv: cfg["ws_send_batch_bytes"]=int(_srv["wsb"])
             except Exception:
                 pass
     writer.write(header)

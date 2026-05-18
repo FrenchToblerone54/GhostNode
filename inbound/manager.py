@@ -70,15 +70,22 @@ class InboundManager:
                     await mux.start()
                     self._port_muxes[mux_key]=mux
                 mux=self._port_muxes[mux_key]
+                ws_send_batch_bytes=inb.get("ws_send_batch_bytes",65536)
+                max_upload_bytes=inb.get("max_upload_bytes",1048576)
+                max_download_bytes=inb.get("max_download_bytes",1048576)
+                min_download_ms=inb.get("min_download_ms",0)
                 if transport=="websocket":
                     from transport.websocket import make_server_handler
+                    aio_handler=make_server_handler(path, handler, host_header, ws_send_batch_bytes=ws_send_batch_bytes)
                 elif transport=="http-request":
                     from transport.http_request import make_server_handler
+                    aio_handler=make_server_handler(path, handler, host_header, max_download_bytes=max_download_bytes, min_download_ms=min_download_ms)
                 elif transport=="http-request-sse":
                     from transport.http_request_sse import make_server_handler
+                    aio_handler=make_server_handler(path, handler, host_header)
                 elif transport=="http-request-body":
                     from transport.http_request_body import make_server_handler
-                aio_handler=make_server_handler(path, handler, host_header)
+                    aio_handler=make_server_handler(path, handler, host_header)
                 mux.add(path, aio_handler)
                 self._servers[tag]=_VirtualMuxServer(mux, path, mux_key, self._port_muxes)
             elif transport=="http2":

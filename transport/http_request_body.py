@@ -277,21 +277,24 @@ async def connect(url, path, sni="", allow_insecure=False, extra=None, host_head
                 logger.debug(f"http-request-body conn error: {e}")
         stream_reader.close()
 
+    _mub=(extra or {}).get("max_upload_bytes",1048576)
     _conn_task=asyncio.create_task(run_conn())
 
     class _Writer:
         def __init__(self):
             self._buf=bytearray()
             self._closed=False
+            self._max_upload=_mub
         def write(self,data):
             if not self._closed:
                 self._buf.extend(data)
         async def drain(self):
             if not self._buf or self._closed:
                 return
-            data=bytes(self._buf)
-            self._buf.clear()
-            await upload_queue.put(data)
+            while self._buf and not self._closed:
+                chunk=bytes(self._buf[:self._max_upload])
+                del self._buf[:self._max_upload]
+                await upload_queue.put(chunk)
         def close(self):
             self._closed=True
             stop_event.set()

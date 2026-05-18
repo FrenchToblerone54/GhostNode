@@ -49,7 +49,7 @@ class SSEStreamReader:
         return data
 
 class SSEStreamWriter:
-    def __init__(self, session_id, base_url, session, ssl_ctx, stop_event):
+    def __init__(self, session_id, base_url, session, ssl_ctx, stop_event, max_upload_bytes=1048576):
         self._sid=session_id
         self._url=base_url
         self._session=session
@@ -58,6 +58,7 @@ class SSEStreamWriter:
         self._buf=bytearray()
         self._closed=False
         self._task=None
+        self._max_upload=max_upload_bytes
 
     def write(self, data):
         if not self._closed:
@@ -66,18 +67,14 @@ class SSEStreamWriter:
     async def drain(self):
         if not self._buf or self._closed:
             return
-        data=bytes(self._buf)
-        self._buf.clear()
-        try:
-            async with self._session.post(
-                f"{self._url}/gn-up",
-                data=data,
-                headers={"X-Session":self._sid,"Content-Type":"application/octet-stream"},
-                ssl=self._ssl
-            ) as resp:
-                pass
-        except Exception as e:
-            logger.debug(f"sse upload error: {e}")
+        while self._buf and not self._closed:
+            chunk=bytes(self._buf[:self._max_upload])
+            del self._buf[:self._max_upload]
+            try:
+                async with self._session.post(f"{self._url}/gn-up", data=chunk, headers={"X-Session":self._sid,"Content-Type":"application/octet-stream"}, ssl=self._ssl) as resp:
+                    pass
+            except Exception as e:
+                logger.debug(f"sse upload error: {e}")
 
     def close(self):
         self._closed=True
@@ -253,9 +250,10 @@ async def connect(url, path, sni="", allow_insecure=False, extra=None, host_head
     session=ClientSession(connector=connector,timeout=ClientTimeout(total=None,connect=10),headers=_base_headers)
     async with session.post(f"{base_url}/gn-init",ssl=ssl_ctx) as resp:
         sid=await resp.text()
+    _mub=(extra or {}).get("max_upload_bytes",1048576)
     stop_event=asyncio.Event()
     stream_reader=SSEStreamReader()
-    stream_writer=SSEStreamWriter(sid,base_url,session,ssl_ctx,stop_event)
+    stream_writer=SSEStreamWriter(sid,base_url,session,ssl_ctx,stop_event,max_upload_bytes=_mub)
 
     async def sse_loop():
         while not stop_event.is_set():

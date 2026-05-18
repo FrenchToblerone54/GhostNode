@@ -93,8 +93,16 @@ async def handle_connection(reader, writer, inbound_tag, db, router, traffic_ctr
                 pass
             return
         import json as _json
-        _srv_cfg={"ps":(inb_cfg or {}).get("pool_size",8),"pc":(inb_cfg or {}).get("poll_connections",4),"pi":(inb_cfg or {}).get("ping_interval",20),"pt":(inb_cfg or {}).get("ping_timeout",10),"ua":(inb_cfg or {}).get("user_agent","")}
-        writer.write(encode_header(_nanoid,CMD_CFG,ADDR_DOMAIN,_json.dumps(_srv_cfg),0))
+        _base={"ps":(inb_cfg or {}).get("pool_size",8),"pc":(inb_cfg or {}).get("poll_connections",4),"pi":(inb_cfg or {}).get("ping_interval",20),"pt":(inb_cfg or {}).get("ping_timeout",10),"mub":(inb_cfg or {}).get("max_upload_bytes",1048576),"mdb":(inb_cfg or {}).get("max_download_bytes",1048576),"mdm":(inb_cfg or {}).get("min_download_ms",0),"pmc":(inb_cfg or {}).get("poll_min_connections",1),"wsb":(inb_cfg or {}).get("ws_send_batch_bytes",65536)}
+        _base_str=_json.dumps(_base)
+        _ua=(inb_cfg or {}).get("user_agent","")
+        _test=_json.dumps({**_base,"ua":_ua})
+        if len(_test.encode())<255:
+            _srv_cfg_str=_test
+        else:
+            _avail=254-len(_base_str.encode())-8
+            _srv_cfg_str=_json.dumps({**_base,"ua":_ua[:max(0,_avail)]})
+        writer.write(encode_header(_nanoid,CMD_CFG,ADDR_DOMAIN,_srv_cfg_str,0))
         await writer.drain()
         raw=await reader.read(512)
         if not raw:

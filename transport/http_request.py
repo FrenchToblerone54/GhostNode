@@ -52,7 +52,7 @@ class HTTPRequestStreamReader:
         return data
 
 class HTTPRequestStreamWriter:
-    def __init__(self, session_id, base_url, session, ssl_ctx, stop_event):
+    def __init__(self, session_id, base_url, session, ssl_ctx, stop_event, max_upload_bytes=1048576):
         self._sid=session_id
         self._url=base_url
         self._session=session
@@ -61,6 +61,7 @@ class HTTPRequestStreamWriter:
         self._buf=bytearray()
         self._closed=False
         self._task=None
+        self._max_upload=max_upload_bytes
 
     def write(self, data):
         if not self._closed:
@@ -69,18 +70,14 @@ class HTTPRequestStreamWriter:
     async def drain(self):
         if not self._buf or self._closed:
             return
-        data=bytes(self._buf)
-        self._buf.clear()
-        try:
-            async with self._session.post(
-                f"{self._url}/gn-up",
-                data=base64.b64encode(data),
-                headers={"X-Session":self._sid},
-                ssl=self._ssl
-            ) as resp:
-                pass
-        except Exception as e:
-            logger.debug(f"http-request upload error: {e}")
+        while self._buf and not self._closed:
+            chunk=bytes(self._buf[:self._max_upload])
+            del self._buf[:self._max_upload]
+            try:
+                async with self._session.post(f"{self._url}/gn-up", data=base64.b64encode(chunk), headers={"X-Session":self._sid}, ssl=self._ssl) as resp:
+                    pass
+            except Exception as e:
+                logger.debug(f"http-request upload error: {e}")
 
     def close(self):
         self._closed=True
@@ -90,11 +87,17 @@ class HTTPRequestStreamWriter:
         asyncio.ensure_future(self._session.close())
 
 class HTTPRequestServerSession:
-    def __init__(self):
-        self._up_queue=asyncio.Queue()
+    def __init__(self, max_download_bytes=1048576, min_download_ms=0):
         self._down_buf=bytearray()
+        self._down_event=asyncio.Event()
         self._created=time.time()
         self._last_seen=time.time()
+        self.max_download_bytes=max_download_bytes
+        self.min_download_ms=min_download_ms
+
+    def feed_down(self, data):
+        self._down_buf.extend(data)
+        self._down_event.set()
 
     def touch(self):
         self._last_seen=time.time()
@@ -104,16 +107,16 @@ class HTTPRequestServerSession:
 
 _sessions={}
 
-async def serve(host, port, path, handler, ssl_cert="", ssl_key=""):
+async def serve(host, port, path, handler, ssl_cert="", ssl_key="", max_upload_bytes=1048576, max_download_bytes=1048576, min_download_ms=0):
     ssl_ctx=None
     if ssl_cert and ssl_key:
         ssl_ctx=ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_ctx.load_cert_chain(ssl_cert,ssl_key)
-    app=web.Application()
+    app=web.Application(client_max_size=max_upload_bytes*2)
 
     async def handle_init(request):
         sid=_nanoid(size=20)
-        sess=HTTPRequestServerSession()
+        sess=HTTPRequestServerSession(max_download_bytes=max_download_bytes, min_download_ms=min_download_ms)
         sess.reader=None
         _sessions[sid]=sess
         stream_reader=HTTPRequestStreamReader()
@@ -129,7 +132,7 @@ async def serve(host, port, path, handler, ssl_cert="", ssl_key=""):
                     self._buf.extend(data)
             async def drain(self):
                 if self._buf:
-                    sess._down_buf.extend(self._buf)
+                    sess.feed_down(bytes(self._buf))
                     self._buf.clear()
             def close(self):
                 self._closed=True
@@ -156,11 +159,20 @@ async def serve(host, port, path, handler, ssl_cert="", ssl_key=""):
         if not sess:
             return web.Response(status=404)
         sess.touch()
-        deadline=time.time()+POLL_TIMEOUT
-        while not sess._down_buf and time.time()<deadline:
-            await asyncio.sleep(0.05)
-        data=bytes(sess._down_buf[:MAX_BATCH])
-        del sess._down_buf[:MAX_BATCH]
+        if not sess._down_buf:
+            if sess.min_download_ms>0:
+                try:
+                    await asyncio.wait_for(sess._down_event.wait(), sess.min_download_ms/1000.0)
+                except asyncio.TimeoutError:
+                    pass
+            if not sess._down_buf:
+                try:
+                    await asyncio.wait_for(sess._down_event.wait(), POLL_TIMEOUT)
+                except asyncio.TimeoutError:
+                    pass
+        sess._down_event.clear()
+        data=bytes(sess._down_buf[:sess.max_download_bytes])
+        del sess._down_buf[:sess.max_download_bytes]
         return web.Response(body=base64.b64encode(data) if data else b"",content_type="application/octet-stream")
 
     app.router.add_post(path+"/gn-init",handle_init)
@@ -180,10 +192,10 @@ async def serve(host, port, path, handler, ssl_cert="", ssl_key=""):
 
     return _Server()
 
-def make_server_handler(path, handler, host_header=""):
+def make_server_handler(path, handler, host_header="", max_download_bytes=1048576, min_download_ms=0):
     async def _handle_init(request):
         sid=_nanoid(size=20)
-        sess=HTTPRequestServerSession()
+        sess=HTTPRequestServerSession(max_download_bytes=max_download_bytes, min_download_ms=min_download_ms)
         sess.reader=None
         _sessions[sid]=sess
         stream_reader=HTTPRequestStreamReader()
@@ -198,7 +210,7 @@ def make_server_handler(path, handler, host_header=""):
                     self._buf.extend(data)
             async def drain(self):
                 if self._buf:
-                    sess._down_buf.extend(self._buf)
+                    sess.feed_down(bytes(self._buf))
                     self._buf.clear()
             def close(self):
                 self._closed=True
@@ -221,11 +233,20 @@ def make_server_handler(path, handler, host_header=""):
         if not sess:
             return web.Response(status=404)
         sess.touch()
-        deadline=time.time()+POLL_TIMEOUT
-        while not sess._down_buf and time.time()<deadline:
-            await asyncio.sleep(0.05)
-        data=bytes(sess._down_buf[:MAX_BATCH])
-        del sess._down_buf[:MAX_BATCH]
+        if not sess._down_buf:
+            if sess.min_download_ms>0:
+                try:
+                    await asyncio.wait_for(sess._down_event.wait(), sess.min_download_ms/1000.0)
+                except asyncio.TimeoutError:
+                    pass
+            if not sess._down_buf:
+                try:
+                    await asyncio.wait_for(sess._down_event.wait(), POLL_TIMEOUT)
+                except asyncio.TimeoutError:
+                    pass
+        sess._down_event.clear()
+        data=bytes(sess._down_buf[:sess.max_download_bytes])
+        del sess._down_buf[:sess.max_download_bytes]
         return web.Response(body=base64.b64encode(data) if data else b"", content_type="application/octet-stream")
     async def dispatch(request):
         rp=request.path
@@ -253,14 +274,16 @@ async def connect(url, path, sni="", allow_insecure=False, extra=None, host_head
     _init_headers={"X-Poll-Connections":str((extra or {}).get("poll_connections",1))}
     async with session.post(f"{base_url}/gn-init",ssl=ssl_ctx,headers=_init_headers) as resp:
         sid=await resp.text()
+    _mub=(extra or {}).get("max_upload_bytes",1048576)
+    _mdb=(extra or {}).get("max_download_bytes",1048576)
     stop_event=asyncio.Event()
     stream_reader=HTTPRequestStreamReader()
-    stream_writer=HTTPRequestStreamWriter(sid,base_url,session,ssl_ctx,stop_event)
+    stream_writer=HTTPRequestStreamWriter(sid,base_url,session,ssl_ctx,stop_event,max_upload_bytes=_mub)
 
     async def poll_loop():
         while not stop_event.is_set():
             try:
-                async with session.get(f"{base_url}/gn-down",headers={"X-Session":sid},ssl=ssl_ctx) as resp:
+                async with session.get(f"{base_url}/gn-down", params={"max":_mdb}, headers={"X-Session":sid},ssl=ssl_ctx) as resp:
                     body=await resp.read()
                     if body:
                         stream_reader.feed(base64.b64decode(body))
