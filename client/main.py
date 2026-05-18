@@ -7,6 +7,7 @@ import sys
 import time
 import urllib.parse
 from config import VERSION
+from client.api import parse_gn_link
 
 CONFIGS_PATH=os.path.expanduser("~/.config/ghostnode/clients.json")
 logging.basicConfig(level=logging.INFO,format="%(levelname)s %(message)s")
@@ -29,38 +30,6 @@ def save_configs(configs):
     with open(CONFIGS_PATH,"w") as f:
         json.dump(configs,f,indent=2)
 
-def parse_gn_link(link):
-    link=link.strip()
-    if not link.startswith("gn://"):
-        raise ValueError("invalid gn:// link")
-    rest=link[5:]
-    if "@" not in rest:
-        raise ValueError("missing @ in link")
-    nanoid,hostpart=rest.split("@",1)
-    if "?" in hostpart:
-        hostport,query=hostpart.split("?",1)
-    else:
-        hostport,query=hostpart,""
-    name=""
-    if "#" in query:
-        query,fragment=query.split("#",1)
-        name=urllib.parse.unquote(fragment)
-    if ":" in hostport:
-        host,port_str=hostport.rsplit(":",1)
-        port=int(port_str)
-    else:
-        host=hostport
-        port=443
-    params=dict(urllib.parse.parse_qsl(query))
-    transport=params.get("transport","ws")
-    path=params.get("path","/gn")
-    security=params.get("security","none")
-    sni=params.get("sni","")
-    url_scheme="wss" if security=="tls" else "ws"
-    if transport in ("h2","http2","hr","http-request","sse","http-request-sse","hrb","http-request-body"):
-        url_scheme="https" if security=="tls" else "http"
-    url=f"{url_scheme}://{host}:{port}"
-    return {"nanoid":nanoid,"name":name or host,"url":url,"transport":transport,"path":path,"sni":sni,"allow_insecure":security=="none" and not sni,"host":host,"port":port,"fp":params.get("fp","")}
 
 def cmd_import(args):
     if not args:
