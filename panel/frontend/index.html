@@ -632,6 +632,7 @@ GhostNode
 <div class="fg"><label class="fl">Traffic Limit (GB, 0=unlimited)</label><input class="fi" id="cl-limit" type="number" placeholder="0" value="0" min="0"></div>
 <div class="fg"><label class="fl">Expire Date (optional)</label><input class="fi" id="cl-expire" type="date"></div>
 </div>
+<div class="fg-row"><label class="fl" data-i18n="col_status">Enabled</label><button class="toggle-btn on" id="cl-enabled" onclick="toggleBtn(this)"></button></div>
 </div>
 <div class="modal-ft">
 <button class="btn btn-ghost" onclick="closeModal('modal-client')" data-i18n="btn_cancel">Cancel</button>
@@ -1272,15 +1273,19 @@ document.getElementById("cl-name").value=c.name;
 sel.value=c.inbound_tag;
 document.getElementById("cl-limit").value=c.traffic_limit?(c.traffic_limit/1073741824).toFixed(2):"0";
 document.getElementById("cl-expire").value=c.expire_date?c.expire_date.split("T")[0]:"";
+const enBtn=document.getElementById("cl-enabled");
+enBtn.classList.toggle("on",!!c.enabled);enBtn.classList.toggle("off",!c.enabled);
 }}else{
 document.getElementById("cl-name").value="";
 document.getElementById("cl-limit").value="0";
 document.getElementById("cl-expire").value="";
+const enBtn=document.getElementById("cl-enabled");
+enBtn.classList.add("on");enBtn.classList.remove("off");
 }
 openModal("modal-client");
 }
 async function saveClient(){
-const body={name:v("cl-name"),inbound_tag:v("cl-inbound"),traffic_limit_gb:parseFloat(v("cl-limit"))||0,expire_date:v("cl-expire")};
+const body={name:v("cl-name"),inbound_tag:v("cl-inbound"),traffic_limit_gb:parseFloat(v("cl-limit"))||0,expire_date:v("cl-expire"),enabled:document.getElementById("cl-enabled").classList.contains("on")?1:0};
 try{
 if(_editClientId)await api("PUT",`/api/clients/${_editClientId}`,body);
 else await api("POST","/api/clients",body);

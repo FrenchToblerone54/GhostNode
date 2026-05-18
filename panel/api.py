@@ -247,6 +247,10 @@ def api_client(id):
     allowed={"name","inbound_tag","traffic_limit","expire_date","enabled"}
     kwargs={k:v for k,v in d.items() if k in allowed}
     _run_async(_db.update_client(id,**kwargs))
+    if kwargs.get("enabled")==0:
+        client=_run_async(_db.get_client(id))
+        if client and _traffic_ctrl:
+            asyncio.run_coroutine_threadsafe(_traffic_ctrl.kill_client_streams(client["nanoid"]),_loop)
     return jsonify({"ok":True})
 
 @panel_route("/api/clients/bulk",methods=["POST"])
@@ -272,7 +276,10 @@ def api_client_reset(id):
 def api_client_toggle(id):
     client=_run_async(_db.get_client(id))
     if client:
-        _run_async(_db.update_client(id,enabled=0 if client["enabled"] else 1))
+        new_enabled=0 if client["enabled"] else 1
+        _run_async(_db.update_client(id,enabled=new_enabled))
+        if new_enabled==0 and _traffic_ctrl:
+            asyncio.run_coroutine_threadsafe(_traffic_ctrl.kill_client_streams(client["nanoid"]),_loop)
     return jsonify({"ok":True})
 
 @panel_route("/api/clients/<int:id>/config-link",methods=["POST"])
