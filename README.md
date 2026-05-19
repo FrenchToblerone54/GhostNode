@@ -25,7 +25,7 @@ A self-hosted proxy server panel built from scratch. Manage inbounds, clients, r
 Run as root on a fresh Debian/Ubuntu server:
 
 ```bash
-bash <(curl -fsSL https://github.com/FrenchToblerone54/GhostNode/releases/latest/download/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/FrenchToblerone54/GhostNode/main/install.sh)
 ```
 
 ## Manual Run

@@ -29,7 +29,7 @@
 <div dir="ltr">
 
 ```bash
-bash <(curl -fsSL https://github.com/FrenchToblerone54/GhostNode/releases/latest/download/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/FrenchToblerone54/GhostNode/main/install.sh)
 ```
 
 </div>
