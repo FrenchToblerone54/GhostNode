@@ -96,6 +96,13 @@ class InboundManager:
                 from transport.grpc import serve as grpc_serve
                 server=await grpc_serve(listen_ip, port, handler, ssl_cert, ssl_key)
                 self._servers[tag]=server
+            elif transport=="mixed":
+                from inbound.mixed_handler import handle_mixed_connection
+                router=self._router
+                async def mixed_handler(reader, writer, _tag=tag, _router=router, _inb=inb):
+                    await handle_mixed_connection(reader, writer, _tag, _router, _inb)
+                server=await asyncio.start_server(mixed_handler, listen_ip, port)
+                self._servers[tag]=server
             else:
                 server=await asyncio.start_server(handler, listen_ip, port)
                 self._servers[tag]=server

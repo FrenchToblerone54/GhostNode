@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 logger=logging.getLogger(__name__)
 
-_CURRENT_VERSION=3
+_CURRENT_VERSION=4
 
 SCHEMA="""
 CREATE TABLE IF NOT EXISTS inbounds (
@@ -33,7 +33,12 @@ CREATE TABLE IF NOT EXISTS inbounds (
     max_download_bytes INTEGER DEFAULT 1048576,
     min_download_ms INTEGER DEFAULT 0,
     poll_min_connections INTEGER DEFAULT 1,
-    ws_send_batch_bytes INTEGER DEFAULT 65536
+    ws_send_batch_bytes INTEGER DEFAULT 65536,
+    sockopt_mark INTEGER DEFAULT 0,
+    sockopt_tcp_fast_open INTEGER DEFAULT 0,
+    sockopt_tcp_no_delay INTEGER DEFAULT 0,
+    sockopt_tcp_keep_alive INTEGER DEFAULT 0,
+    sockopt_tcp_congestion TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,6 +133,13 @@ _MIGRATIONS=[
         "ALTER TABLE inbounds ADD COLUMN min_download_ms INTEGER DEFAULT 0",
         "ALTER TABLE inbounds ADD COLUMN poll_min_connections INTEGER DEFAULT 1",
         "ALTER TABLE inbounds ADD COLUMN ws_send_batch_bytes INTEGER DEFAULT 65536",
+    ],
+    [
+        "ALTER TABLE inbounds ADD COLUMN sockopt_mark INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN sockopt_tcp_fast_open INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN sockopt_tcp_no_delay INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN sockopt_tcp_keep_alive INTEGER DEFAULT 0",
+        "ALTER TABLE inbounds ADD COLUMN sockopt_tcp_congestion TEXT DEFAULT ''",
     ],
 ]
 
@@ -236,10 +248,10 @@ class Database:
             row=await cur.fetchone()
             return dict(row) if row else None
 
-    async def create_inbound(self, tag, port, transport="websocket", path="/gn", ssl_cert="", ssl_key="", listen_ip="0.0.0.0", ext_host="", ext_port=0, ext_tls=0, host="", sni="", pool_size=8, poll_connections=4, ping_interval=20, ping_timeout=10, user_agent="", max_upload_bytes=1048576, max_download_bytes=1048576, min_download_ms=0, poll_min_connections=1, ws_send_batch_bytes=65536):
+    async def create_inbound(self, tag, port, transport="websocket", path="/gn", ssl_cert="", ssl_key="", listen_ip="0.0.0.0", ext_host="", ext_port=0, ext_tls=0, host="", sni="", pool_size=8, poll_connections=4, ping_interval=20, ping_timeout=10, user_agent="", max_upload_bytes=1048576, max_download_bytes=1048576, min_download_ms=0, poll_min_connections=1, ws_send_batch_bytes=65536, sockopt_mark=0, sockopt_tcp_fast_open=0, sockopt_tcp_no_delay=0, sockopt_tcp_keep_alive=0, sockopt_tcp_congestion=""):
         await self._db.execute(
-            "INSERT INTO inbounds(tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent,max_upload_bytes,max_download_bytes,min_download_ms,poll_min_connections,ws_send_batch_bytes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent,max_upload_bytes,max_download_bytes,min_download_ms,poll_min_connections,ws_send_batch_bytes)
+            "INSERT INTO inbounds(tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent,max_upload_bytes,max_download_bytes,min_download_ms,poll_min_connections,ws_send_batch_bytes,sockopt_mark,sockopt_tcp_fast_open,sockopt_tcp_no_delay,sockopt_tcp_keep_alive,sockopt_tcp_congestion) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (tag,port,transport,path,ssl_cert,ssl_key,listen_ip,ext_host,ext_port,ext_tls,host,sni,pool_size,poll_connections,ping_interval,ping_timeout,user_agent,max_upload_bytes,max_download_bytes,min_download_ms,poll_min_connections,ws_send_batch_bytes,sockopt_mark,sockopt_tcp_fast_open,sockopt_tcp_no_delay,sockopt_tcp_keep_alive,sockopt_tcp_congestion)
         )
         await self._db.commit()
         async with self._db.execute("SELECT last_insert_rowid()") as cur:

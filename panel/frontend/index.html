@@ -573,16 +573,18 @@ GhostNode
 <div class="fg"><label class="fl" data-i18n="col_port">Port</label><input class="fi" id="ib-port" type="number" placeholder="443"></div>
 <div class="fg"><label class="fl">Listen IP</label><input class="fi" id="ib-listen-ip" placeholder="0.0.0.0" value="0.0.0.0"></div>
 <div class="fg"><label class="fl" data-i18n="col_transport">Transport</label>
-<select class="fi" id="ib-transport">
+<select class="fi" id="ib-transport" onchange="updateInboundTransportUI()">
 <option value="websocket">WebSocket</option>
 <option value="http2">HTTP/2</option>
 <option value="grpc">gRPC</option>
 <option value="http-request">HTTP Request</option>
 <option value="http-request-sse">HTTP Request SSE</option>
 <option value="http-request-body">HTTP Request Body</option>
+<option value="mixed">Mixed (SOCKS5+HTTP)</option>
 </select>
 </div>
 </div>
+<div id="ib-gnp-section">
 <div class="fg"><label class="fl" data-i18n="col_path">Path</label><input class="fi" id="ib-path" placeholder="/gn" value="/gn"></div>
 <div class="fg"><label class="fl">SSL Certificate Path (optional)</label><input class="fi" id="ib-cert" placeholder="/etc/ssl/cert.pem"></div>
 <div class="fg"><label class="fl">SSL Key Path (optional)</label><input class="fi" id="ib-key" placeholder="/etc/ssl/key.pem"></div>
@@ -615,6 +617,16 @@ GhostNode
 <div class="fg"><label class="fl">Min Poll Connections</label><input class="fi" id="ib-poll-min" type="number" placeholder="1" value="1" min="1"></div>
 </div>
 <div class="fg"><label class="fl">WS Send Batch Bytes</label><input class="fi" id="ib-ws-batch" type="number" placeholder="65536" value="65536" min="1024"></div>
+</div>
+<div id="ib-mixed-section" style="display:none">
+<div class="section-divider"></div>
+<div style="font-size:.74em;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Sockopt</div>
+<div class="fg"><label class="fl">SO_MARK (0 = disabled)</label><input class="fi" id="ib-sockopt-mark" type="number" placeholder="0" value="0" min="0"></div>
+<div class="fg-row"><label class="fl">TCP No Delay</label><button class="toggle-btn off" id="ib-sockopt-tnd" onclick="toggleBtn(this)"></button></div>
+<div class="fg-row"><label class="fl">TCP Keep Alive</label><button class="toggle-btn off" id="ib-sockopt-tka" onclick="toggleBtn(this)"></button></div>
+<div class="fg-row"><label class="fl">TCP Fast Open</label><button class="toggle-btn off" id="ib-sockopt-tfo" onclick="toggleBtn(this)"></button></div>
+<div class="fg"><label class="fl">TCP Congestion (e.g. bbr)</label><input class="fi" id="ib-sockopt-cc" placeholder=""></div>
+</div>
 <div class="fg-row"><label class="fl" data-i18n="col_status">Enabled</label><button class="toggle-btn on" id="ib-enabled" onclick="toggleBtn(this)"></button></div>
 </div>
 <div class="modal-ft">
@@ -1000,7 +1012,7 @@ function stopStatsPolling(){if(_statsInterval){clearInterval(_statsInterval);_st
 
 // ---- INBOUNDS ----
 const transportBadge=t=>{
-const m={websocket:"badge-blue",http2:"badge-accent",grpc:"badge-purple","http-request":"badge-warning","http-request-sse":"badge-warning","http-request-body":"badge-warning"};
+const m={websocket:"badge-blue",http2:"badge-accent",grpc:"badge-purple","http-request":"badge-warning","http-request-sse":"badge-warning","http-request-body":"badge-warning",mixed:"badge-accent"};
 return `<span class="badge ${m[t]||"badge-muted"}">${t}</span>`;
 };
 
@@ -1018,7 +1030,7 @@ tb.innerHTML=_inbounds.map(i=>`
 <td><span class="mono" style="color:var(--text)">${esc(i.tag)}</span></td>
 <td><span class="mono" style="color:var(--accent)">${i.port}</span></td>
 <td>${transportBadge(i.transport)}</td>
-<td><span class="mono" style="color:var(--text2)">${esc(i.path||"/gn")}</span></td>
+<td><span class="mono" style="color:var(--text2)">${i.transport==="mixed"?"-":esc(i.path||"/gn")}</span></td>
 <td>${i.ssl_cert?"<span class=\"badge badge-accent\">TLS</span>":"<span class=\"badge badge-muted\">None</span>"}</td>
 <td><button class="toggle-btn ${i.enabled?"on":"off"}" onclick="toggleInbound(${i.id},this)"></button></td>
 <td class="tbl-actions"><div class="tbl-actions-inner">
@@ -1050,6 +1062,11 @@ const bar=document.getElementById("bulk-bar-inbounds");
 const info=document.getElementById("bulk-info-inbounds");
 if(_selInbounds.size>0){bar.classList.add("show");info.textContent=_selInbounds.size+" selected"}
 else bar.classList.remove("show");
+}
+function updateInboundTransportUI(){
+const isMixed=document.getElementById("ib-transport").value==="mixed";
+document.getElementById("ib-gnp-section").style.display=isMixed?"none":"";
+document.getElementById("ib-mixed-section").style.display=isMixed?"":"none";
 }
 async function bulkInbounds(action){
 if(!_selInbounds.size)return;
@@ -1098,6 +1115,11 @@ document.getElementById("ib-min-dl-ms").value=i.min_download_ms||0;
 document.getElementById("ib-poll-min").value=i.poll_min_connections||1;
 document.getElementById("ib-ws-batch").value=i.ws_send_batch_bytes||65536;
 document.getElementById("ib-enabled").className="toggle-btn "+(i.enabled?"on":"off");
+document.getElementById("ib-sockopt-mark").value=i.sockopt_mark||0;
+document.getElementById("ib-sockopt-tnd").className="toggle-btn "+(i.sockopt_tcp_no_delay?"on":"off");
+document.getElementById("ib-sockopt-tka").className="toggle-btn "+(i.sockopt_tcp_keep_alive?"on":"off");
+document.getElementById("ib-sockopt-tfo").className="toggle-btn "+(i.sockopt_tcp_fast_open?"on":"off");
+document.getElementById("ib-sockopt-cc").value=i.sockopt_tcp_congestion||"";
 }}else{
 document.getElementById("ib-tag").value="";
 document.getElementById("ib-port").value="";
@@ -1122,11 +1144,17 @@ document.getElementById("ib-min-dl-ms").value=0;
 document.getElementById("ib-poll-min").value=1;
 document.getElementById("ib-ws-batch").value=65536;
 document.getElementById("ib-enabled").className="toggle-btn on";
+document.getElementById("ib-sockopt-mark").value=0;
+document.getElementById("ib-sockopt-tnd").className="toggle-btn off";
+document.getElementById("ib-sockopt-tka").className="toggle-btn off";
+document.getElementById("ib-sockopt-tfo").className="toggle-btn off";
+document.getElementById("ib-sockopt-cc").value="";
 }
+updateInboundTransportUI();
 openModal("modal-inbound");
 }
 async function saveInbound(){
-const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0",pool_size:parseInt(document.getElementById("ib-pool-size").value)||8,poll_connections:parseInt(document.getElementById("ib-poll-conn").value)||4,ping_interval:parseInt(document.getElementById("ib-ping-iv").value)||20,ping_timeout:parseInt(document.getElementById("ib-ping-to").value)||10,user_agent:document.getElementById("ib-ua").value.trim(),max_upload_bytes:parseInt(document.getElementById("ib-max-up").value)||1048576,max_download_bytes:parseInt(document.getElementById("ib-max-down").value)||1048576,min_download_ms:parseInt(document.getElementById("ib-min-dl-ms").value)||0,poll_min_connections:parseInt(document.getElementById("ib-poll-min").value)||1,ws_send_batch_bytes:parseInt(document.getElementById("ib-ws-batch").value)||65536};
+const body={tag:v("ib-tag"),port:parseInt(v("ib-port")),transport:v("ib-transport"),path:v("ib-path")||"/gn",ssl_cert:v("ib-cert"),ssl_key:v("ib-key"),sni:v("ib-sni"),host:v("ib-host"),ext_host:v("ib-ext-host"),ext_port:parseInt(v("ib-ext-port"))||0,ext_tls:isBtnOn(document.getElementById("ib-ext-tls"))?1:0,enabled:isBtnOn(document.getElementById("ib-enabled"))?1:0,listen_ip:v("ib-listen-ip")||"0.0.0.0",pool_size:parseInt(document.getElementById("ib-pool-size").value)||8,poll_connections:parseInt(document.getElementById("ib-poll-conn").value)||4,ping_interval:parseInt(document.getElementById("ib-ping-iv").value)||20,ping_timeout:parseInt(document.getElementById("ib-ping-to").value)||10,user_agent:document.getElementById("ib-ua").value.trim(),max_upload_bytes:parseInt(document.getElementById("ib-max-up").value)||1048576,max_download_bytes:parseInt(document.getElementById("ib-max-down").value)||1048576,min_download_ms:parseInt(document.getElementById("ib-min-dl-ms").value)||0,poll_min_connections:parseInt(document.getElementById("ib-poll-min").value)||1,ws_send_batch_bytes:parseInt(document.getElementById("ib-ws-batch").value)||65536,sockopt_mark:parseInt(document.getElementById("ib-sockopt-mark").value)||0,sockopt_tcp_no_delay:isBtnOn(document.getElementById("ib-sockopt-tnd"))?1:0,sockopt_tcp_keep_alive:isBtnOn(document.getElementById("ib-sockopt-tka"))?1:0,sockopt_tcp_fast_open:isBtnOn(document.getElementById("ib-sockopt-tfo"))?1:0,sockopt_tcp_congestion:document.getElementById("ib-sockopt-cc").value.trim()};
 try{
 if(_editInboundId)await api("PUT",`/api/inbounds/${_editInboundId}`,body);
 else await api("POST","/api/inbounds",body);
@@ -1267,7 +1295,7 @@ function openClientModal(id){
 _editClientId=id||null;
 document.getElementById("client-modal-title").textContent=id?"Edit Client":"Add Client";
 const sel=document.getElementById("cl-inbound");
-sel.innerHTML=_inbounds.map(i=>`<option value="${esc(i.tag)}">${esc(i.tag)}</option>`).join("");
+sel.innerHTML=_inbounds.filter(i=>i.transport!=="mixed").map(i=>`<option value="${esc(i.tag)}">${esc(i.tag)}</option>`).join("");
 if(id){
 const c=_clients.find(x=>x.id===id);
 if(c){

@@ -13,7 +13,7 @@
 - پروتکل باینری GNP با NanoID-20 به عنوان شناسه کلاینت و multiplexing به سبک yamux
 - موتور routing با تطبیق domain، IP، CIDR، port، protocol و inbound tag
 - پشتیبانی از GeoIP و GeoSite از طریق فایل‌های `geoip.dat` و `geosite.dat` مربوط به v2fly
-- شش نوع transport: websocket، http2، grpc، http-request، http-request-sse، http-request-body
+- هفت نوع transport: websocket، http2، grpc، http-request، http-request-sse، http-request-body، mixed (پروکسی SOCKS5+HTTP)
 - انواع outbound: direct، block، ghostnode، socks5، http
 - حسابداری ترافیک به ازای هر کلاینت (شمارنده‌های بایت آپلود + دانلود)
 - تم‌های تاریک و روشن برای پنل
@@ -122,6 +122,7 @@ gn://NANOID@host:port?transport=ws&path=/gn&security=tls&sni=override.com&fp=BAS
 | HTTP Request | `http-request` | HTTP GET/POST با long-poll |
 | HTTP Request SSE | `http-request-sse` | downlink با Server-Sent Events |
 | HTTP Request Body | `http-request-body` | request body به صورت chunked |
+| Mixed | `mixed` | پروکسی SOCKS5 + HTTP CONNECT روی یک پورت، از routing engine استفاده می‌کند، کلاینت GNP ندارد |
 
 ## GeoIP و GeoSite
 

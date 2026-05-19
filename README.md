@@ -11,7 +11,7 @@ A self-hosted proxy server panel built from scratch. Manage inbounds, clients, r
 - GNP binary protocol with NanoID-20 client IDs and yamux-style multiplexing
 - Routing engine with domain, IP, CIDR, port, protocol, and inbound tag matching
 - GeoIP and GeoSite support via v2fly `geoip.dat` and `geosite.dat`
-- Six transport types: websocket, http2, grpc, http-request, http-request-sse, http-request-body
+- Seven transport types: websocket, http2, grpc, http-request, http-request-sse, http-request-body, mixed (SOCKS5+HTTP proxy)
 - Outbound types: direct, block, ghostnode, socks5, http
 - Per-client traffic accounting (upload + download byte counters)
 - Dark and light panel themes
@@ -99,6 +99,7 @@ gn://NANOID@host:port?transport=ws&path=/gn&security=tls&sni=override.com&fp=BAS
 | HTTP Request | `http-request` | Long-poll HTTP GET/POST |
 | HTTP Request SSE | `http-request-sse` | Server-Sent Events downlink |
 | HTTP Request Body | `http-request-body` | Chunked request body |
+| Mixed | `mixed` | SOCKS5 + HTTP CONNECT proxy on one port, uses routing engine, no GNP clients |
 
 ## GeoIP and GeoSite
 

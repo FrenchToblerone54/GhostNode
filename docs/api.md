@@ -34,7 +34,12 @@ Returns all configured inbounds.
     "ext_port": 0,
     "ext_tls": 0,
     "host": "",
-    "sni": ""
+    "sni": "",
+    "sockopt_mark": 0,
+    "sockopt_tcp_fast_open": 0,
+    "sockopt_tcp_no_delay": 0,
+    "sockopt_tcp_keep_alive": 0,
+    "sockopt_tcp_congestion": ""
   }
 ]
 ```
@@ -51,11 +56,16 @@ Returns all configured inbounds.
 |-------|------|----------|-------------|
 | `tag` | string | yes | Unique identifier tag for this inbound |
 | `port` | integer | yes | Port to listen on |
-| `transport` | string | no | One of: `websocket`, `http2`, `grpc`, `http-request`, `http-request-sse`, `http-request-body`. Default: `websocket` |
-| `path` | string | no | HTTP path for the transport. Default: `/gn` |
-| `ssl_cert` | string | no | Path to TLS certificate file |
-| `ssl_key` | string | no | Path to TLS private key file |
+| `transport` | string | no | One of: `websocket`, `http2`, `grpc`, `http-request`, `http-request-sse`, `http-request-body`, `mixed`. Default: `websocket` |
+| `path` | string | no | HTTP path for the transport. Not used for `mixed`. Default: `/gn` |
+| `ssl_cert` | string | no | Path to TLS certificate file. Not used for `mixed` |
+| `ssl_key` | string | no | Path to TLS private key file. Not used for `mixed` |
 | `listen_ip` | string | no | IP address to bind. Default: `0.0.0.0` |
+| `sockopt_mark` | integer | no | `SO_MARK` value applied to outbound TCP connections (Linux policy routing). `mixed` only. Default: `0` |
+| `sockopt_tcp_no_delay` | integer | no | Enable `TCP_NODELAY` on outbound connections. `mixed` only. Default: `0` |
+| `sockopt_tcp_keep_alive` | integer | no | Enable `SO_KEEPALIVE` on outbound connections. `mixed` only. Default: `0` |
+| `sockopt_tcp_fast_open` | integer | no | Enable TCP Fast Open on outbound connections. `mixed` only. Default: `0` |
+| `sockopt_tcp_congestion` | string | no | TCP congestion control algorithm (e.g. `bbr`, `cubic`). `mixed` only. Default: `""` |
 
 **Response** `201 Created`
 
@@ -78,9 +88,9 @@ Restarts the inbound after updating. All fields are optional (partial update).
 | `tag` | string | Inbound tag |
 | `port` | integer | Listening port |
 | `transport` | string | Transport type |
-| `path` | string | HTTP path |
-| `ssl_cert` | string | TLS certificate file path |
-| `ssl_key` | string | TLS private key file path |
+| `path` | string | HTTP path (not used for `mixed`) |
+| `ssl_cert` | string | TLS certificate file path (not used for `mixed`) |
+| `ssl_key` | string | TLS private key file path (not used for `mixed`) |
 | `enabled` | integer | `1` to enable, `0` to disable |
 | `ext_host` | string | External hostname override for config link generation |
 | `ext_port` | integer | External port override for config link generation |
@@ -88,6 +98,11 @@ Restarts the inbound after updating. All fields are optional (partial update).
 | `host` | string | Host header value |
 | `sni` | string | TLS SNI override |
 | `listen_ip` | string | Bind IP address |
+| `sockopt_mark` | integer | `SO_MARK` for outbound connections (`mixed` only) |
+| `sockopt_tcp_no_delay` | integer | `TCP_NODELAY` on outbound connections (`mixed` only) |
+| `sockopt_tcp_keep_alive` | integer | `SO_KEEPALIVE` on outbound connections (`mixed` only) |
+| `sockopt_tcp_fast_open` | integer | TCP Fast Open on outbound connections (`mixed` only) |
+| `sockopt_tcp_congestion` | string | TCP congestion algorithm, e.g. `bbr` (`mixed` only) |
 
 **Response**
 
